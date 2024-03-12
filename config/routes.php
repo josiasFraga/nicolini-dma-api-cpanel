@@ -134,10 +134,20 @@ return static function (RouteBuilder $routes) {
             'controller' => 'StoreCutoutCodes',
             'action' => 'index'
         ])->setMethods(['GET']);
-        
+
         $builder->connect('/expected-yield/index', [
             'controller' => 'ExpectedYield',
             'action' => 'index'
+        ])->setMethods(['GET']);
+
+        $builder->connect('/dma/finish', [
+            'controller' => 'Dma',
+            'action' => 'finish'
+        ])->setMethods(['POST']);
+
+        $builder->connect('/dma/next-date', [
+            'controller' => 'Dma',
+            'action' => 'nextDate'
         ])->setMethods(['GET']);
         
         // Você pode adicionar mais rotas da API conforme necessário

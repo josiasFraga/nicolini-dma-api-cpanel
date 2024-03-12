@@ -17,7 +17,7 @@ use Cake\ORM\Entity;
  * @property string $user
  * @property string $type
  * @property string|null $cutout_type
- * @property string $good_code
+ * @property string|null $good_code
  * @property float $quantity
  */
 class Dma extends Entity

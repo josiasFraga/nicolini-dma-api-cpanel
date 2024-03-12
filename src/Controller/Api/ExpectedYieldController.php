@@ -6,7 +6,8 @@ namespace App\Controller\Api;
 use Cake\Event\EventInterface;
 
 class ExpectedYieldController extends AppController
-{    public function beforeFilter(\Cake\Event\EventInterface $event)
+{
+    public function beforeFilter(\Cake\Event\EventInterface $event)
     {
         parent::beforeFilter($event);
         // Isso permite ações não autenticadas a serem acessadas sem autenticação

@@ -88,8 +88,7 @@ class DmaTable extends Table
         $validator
             ->scalar('good_code')
             ->maxLength('good_code', 20)
-            ->requirePresence('good_code', 'create')
-            ->notEmptyString('good_code');
+            ->allowEmptyString('good_code');
 
         $validator
             ->numeric('quantity')

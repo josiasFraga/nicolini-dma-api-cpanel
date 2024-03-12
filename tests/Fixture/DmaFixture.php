@@ -26,11 +26,11 @@ class DmaFixture extends TestFixture
         $this->records = [
             [
                 'id' => 1,
-                'created' => 1709917691,
-                'modified' => 1709917691,
+                'created' => 1710199561,
+                'modified' => 1710199561,
                 'store_code' => 'Lorem ipsum dolor sit amet',
-                'date_movement' => '2024-03-08',
-                'date_accounting' => '2024-03-08',
+                'date_movement' => '2024-03-11',
+                'date_accounting' => '2024-03-11',
                 'user' => 'Lorem ipsum dolor sit amet',
                 'type' => 'Lorem ipsum dolor sit amet',
                 'cutout_type' => 'Lorem ipsum dolor sit amet',
