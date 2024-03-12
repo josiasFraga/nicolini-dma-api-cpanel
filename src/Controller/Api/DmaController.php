@@ -28,6 +28,8 @@ class DmaController extends AppController
         $jwtPayload = $this->request->getAttribute('jwtPayload');
         $userId = $jwtPayload->sub;
         $dados = json_decode($this->request->getData('dados'), true);
+
+        //Log::debug($this->request->getData('dados'));
     
         // Verifica a presença e não-vazio de 'saidas' e 'entradas'
         if (empty($dados['saidas'])) {
@@ -123,20 +125,53 @@ class DmaController extends AppController
     {
         $entities = [];
     
-        foreach (['saidas' => 'Saida', 'entradas' => 'Entrada'] as $key => $type) {
-            foreach ($dados[$key] as $item) {
-                $entities[] = $this->Dma->newEntity([
-                    'store_code' => $store_code,
-                    'user' => $dados['user'],
-                    'date_movement' => date('Y-m-d'),
-                    'date_accounting' => $date_accounting,
-                    'type' => $type,
-                    // Campos específicos para 'entradas' ou 'saidas'
-                    'cutout_type' => $type == 'Entrada' ? ($key === 'entradas' ? "Primeira" : null) : null,
-                    'good_code' => $type == 'Saida' ? str_pad($item['goodCode'], 7, "0", STR_PAD_LEFT) : null,
-                    'quantity' => str_replace(',', '.', str_replace('.', '', $item[$type == 'Saida' ? 'kg' : 'primeMeatKg'])),
-                ]);
-            }
+        foreach( $dados['saidas'] as $key => $saida ) {
+            $entities[] = $this->Dma->newEntity([
+                'store_code' => $store_code,
+                'user' => $dados['user'],
+                'date_movement' => date('Y-m-d'),
+                'date_accounting' => $date_accounting,
+                'type' => 'Saida',
+                'cutout_type' => null,
+                'good_code' => str_pad($saida['goodCode'], 7, "0", STR_PAD_LEFT),
+                'quantity' => str_replace(',','.',str_replace('.','',$saida['kg']))
+            ]);
+        }
+
+        foreach( $dados['entradas'] as $key => $entrada ) {
+
+            $entities[] = $this->Dma->newEntity([
+                'store_code' => $store_code,
+                'user' => $dados['user'],
+                'date_movement' => date('Y-m-d'),
+                'date_accounting' => $date_accounting,
+                'type' => 'Entrada',
+                'cutout_type' => "Primeira",
+                'good_code' => null,
+                'quantity' => str_replace(',','.',str_replace('.','',$entrada['primeMeatKg']))
+            ]);
+
+            $entities[] = $this->Dma->newEntity([
+                'store_code' => $store_code,
+                'user' => $dados['user'],
+                'date_movement' => date('Y-m-d'),
+                'date_accounting' => $date_accounting,
+                'type' => 'Entrada',
+                'cutout_type' => "Segunda",
+                'good_code' => null,
+                'quantity' => str_replace(',','.',str_replace('.','',$entrada['secondMeatKg']))
+            ]);
+
+            $entities[] = $this->Dma->newEntity([
+                'store_code' => $store_code,
+                'user' => $dados['user'],
+                'date_movement' => date('Y-m-d'),
+                'date_accounting' => $date_accounting,
+                'type' => 'Entrada',
+                'cutout_type' => "Osso e Pelanca",
+                'good_code' => null,
+                'quantity' => str_replace(',','.',str_replace('.','',$entrada['boneAndSkinKg']))
+            ]);
         }
     
         return $entities;
