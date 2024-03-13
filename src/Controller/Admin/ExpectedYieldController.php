@@ -31,8 +31,6 @@ class ExpectedYieldController extends AppController
 
     public function index()
     {
-        
-
         $this->set('title', 'Códigos de recortes');
 
         if ($this->request->is('post')) {

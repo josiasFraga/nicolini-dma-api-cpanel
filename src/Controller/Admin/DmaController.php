@@ -4,97 +4,85 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Controller\AppController;
+use Cake\Event\EventInterface;
 
-/**
- * Dma Controller
- *
- * @property \App\Model\Table\DmaTable $Dma
- * @method \App\Model\Entity\Dma[]|\Cake\Datasource\ResultSetInterface paginate($object = null, array $settings = [])
- */
+
 class DmaController extends AppController
 {
-    /**
-     * Index method
-     *
-     * @return \Cake\Http\Response|null|void Renders view
-     */
+
+    public function initialize(): void
+    {
+        parent::initialize();
+        $this->loadComponent('Authorization.Authorization');
+        //$this->Authorization->authorize(new PromocaoPolicy());
+    }
+
+    public function beforeFilter(EventInterface $event)
+    {
+        parent::beforeFilter($event);
+        //$this->Authentication->addUnauthenticatedActions(['login']); // Ação de login não requer autenticação
+        $this->Authorization->skipAuthorization();
+
+        if (!$this->Authentication->getIdentity()) {
+            return $this->redirect(['controller' => 'Users', 'action' => 'login']);
+        }
+
+        return true;
+    }
+
     public function index()
     {
-        $dma = $this->paginate($this->Dma);
+        
+        $this->set('title', 'Códigos de recortes');
 
-        $this->set(compact('dma'));
-    }
-
-    /**
-     * View method
-     *
-     * @param string|null $id Dma id.
-     * @return \Cake\Http\Response|null|void Renders view
-     * @throws \Cake\Datasource\Exception\RecordNotFoundException When record not found.
-     */
-    public function view($id = null)
-    {
-        $dma = $this->Dma->get($id, [
-            'contain' => [],
-        ]);
-
-        $this->set(compact('dma'));
-    }
-
-
-    /**
-     * Add method
-     *
-     * @return \Cake\Http\Response|null Redirects on successful add, renders view otherwise.
-     */
-    public function add()
-    {
-        $dma = $this->Dma->newEmptyEntity();
         if ($this->request->is('post')) {
-            $dma = $this->Dma->patchEntity($dma, $this->request->getData());
-            if ($this->Dma->save($dma)) {
-                $this->Flash->success(__('The {0} has been saved.', 'Dma'));
+            // Get the search term from the form data
+            $searchTerm = $this->request->getData('table_search');
 
-                return $this->redirect(['action' => 'index']);
+            // Attempt to convert search term to English date format if it matches Brazilian date format
+            if (substr_count($searchTerm, "/") === 2) {
+                $searchTerm = date('Y-m-d', strtotime(str_replace('/', '-', $searchTerm)));
             }
-            $this->Flash->error(__('The {0} could not be saved. Please, try again.', 'Dma'));
+    
+            // Perform the search query based on the search term
+            $query = $this->Dma
+                ->find()
+                ->where([
+                    'OR' => [
+                        'Dma.store_code LIKE' => '%' . $searchTerm . '%',
+                        'Dma.date_movement LIKE' => '%' . $searchTerm . '%',
+                        'Dma.date_accounting LIKE' => '%' . $searchTerm . '%',
+                        'Dma.user LIKE' => '%' . $searchTerm . '%',
+                        'Dma.type LIKE' => '%' . $searchTerm . '%',
+                        'Dma.cutout_type LIKE' => '%' . $searchTerm . '%',
+                        'Dma.good_code LIKE' => '%' . $searchTerm . '%',
+                        'Dma.quantity LIKE' => '%' . $searchTerm . '%',
+                    ]
+                ]);
+    
+            $this->paginate = [
+                'limit' => 20, // Set your desired limit per page
+            ];
+    
+            // Paginate the query before fetching the results
+            $dma = $this->paginate($query);
+
+            if (substr_count($searchTerm, "-") === 2) {
+                $searchTerm = date('d/m/Y', strtotime($searchTerm));
+            }
+    
+            // Pass the search results to the view
+            $this->set(compact('dma', 'searchTerm'));
+        } else {
+            // If the form has not been submitted, fetch all the service subcategories as usual
+            $this->paginate = [
+                // Pagination settings here
+            ];
+            $dma = $this->paginate($this->Dma);
+            $this->set(compact('dma'));
         }
-        $this->set(compact('dma'));
     }
 
-
-    /**
-     * Edit method
-     *
-     * @param string|null $id Dma id.
-     * @return \Cake\Http\Response|null Redirects on successful edit, renders view otherwise.
-     * @throws \Cake\Network\Exception\NotFoundException When record not found.
-     */
-    public function edit($id = null)
-    {
-        $dma = $this->Dma->get($id, [
-            'contain' => []
-        ]);
-        if ($this->request->is(['patch', 'post', 'put'])) {
-            $dma = $this->Dma->patchEntity($dma, $this->request->getData());
-            if ($this->Dma->save($dma)) {
-                $this->Flash->success(__('The {0} has been saved.', 'Dma'));
-
-                return $this->redirect(['action' => 'index']);
-            }
-            $this->Flash->error(__('The {0} could not be saved. Please, try again.', 'Dma'));
-        }
-        $this->set(compact('dma'));
-    }
-
-
-    /**
-     * Delete method
-     *
-     * @param string|null $id Dma id.
-     * @return \Cake\Http\Response|null Redirects to index.
-     * @throws \Cake\Datasource\Exception\RecordNotFoundException When record not found.
-     */
     public function delete($id = null)
     {
         $this->request->allowMethod(['post', 'delete']);

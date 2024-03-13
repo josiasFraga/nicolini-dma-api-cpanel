@@ -141,3 +141,18 @@ msgstr "anterior"
 
 msgid "next"
 msgstr "próxima"
+
+msgid "Date Movement"
+msgstr "Data Movimento"
+
+msgid "Date Accounting"
+msgstr "Data da Contabilidade"
+
+msgid "User"
+msgstr "Usuário"
+
+msgid "Type"
+msgstr "Tipo"
+
+msgid "Quantity"
+msgstr "QTD"
