@@ -4,8 +4,60 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "739cafef9076b6f5d1edb8e0ad44e6e7",
+    "content-hash": "c79e5d25d379cd53a51e4a450dd8de13",
     "packages": [
+        {
+            "name": "ahmedebead/cakephp-4-lte",
+            "version": "2.0.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/ahmed3bead/cakephp-4-lte.git",
+                "reference": "a014582a187aeb677adfa69fdb90245c6bf07540"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/ahmed3bead/cakephp-4-lte/zipball/a014582a187aeb677adfa69fdb90245c6bf07540",
+                "reference": "a014582a187aeb677adfa69fdb90245c6bf07540",
+                "shasum": ""
+            },
+            "require": {
+                "cakephp/cakephp": "^4.0",
+                "php": ">=7.2.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^8.5 || ^9.3"
+            },
+            "type": "cakephp-plugin",
+            "autoload": {
+                "psr-4": {
+                    "CakephpLte\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Ahmed Ebead",
+                    "email": "ahmedm3bead@gmail.com",
+                    "homepage": "https://github.com/ahmed3bead",
+                    "role": "Author"
+                }
+            ],
+            "description": "CakePHP 4.x AdminLTE 3.1 Theme.",
+            "homepage": "https://github.com/ahmed3bead/cakephp-4-lte",
+            "keywords": [
+                "cakephp",
+                "plugin",
+                "templates"
+            ],
+            "support": {
+                "issues": "https://github.com/ahmed3bead/cakephp-4-lte/issues",
+                "source": "https://github.com/ahmed3bead/cakephp-4-lte"
+            },
+            "time": "2021-12-05T20:58:57+00:00"
+        },
         {
             "name": "cakephp/authentication",
             "version": "2.10.2",

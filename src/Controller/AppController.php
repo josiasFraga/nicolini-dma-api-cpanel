@@ -17,6 +17,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use Cake\Controller\Controller;
+use Cake\Event\EventInterface;
 
 /**
  * Application Controller
@@ -44,10 +45,19 @@ class AppController extends Controller
         $this->loadComponent('RequestHandler');
         $this->loadComponent('Flash');
 
+        $this->loadComponent('Authorization.Authorization');
+        $this->loadComponent('Authentication.Authentication');
+
         /*
          * Enable the following component for recommended CakePHP form protection settings.
          * see https://book.cakephp.org/4/en/controllers/components/form-protection.html
          */
         //$this->loadComponent('FormProtection');
+    }
+
+    public function beforeRender(EventInterface  $event)
+    {
+        $this->viewBuilder()->setTheme('CakephpLte');
+        $this->viewBuilder()->setClassName('CakephpLte.CakephpLte');
     }
 }

@@ -93,7 +93,7 @@ return static function (RouteBuilder $routes) {
 
      $routes->prefix('admin', function (RouteBuilder $builder) {
         $builder->connect('/users/login', ['controller' => 'Users', 'action' => 'login']); // <-- Adicione esta linha
-        $builder->connect('/', ['controller' => 'Pages', 'action' => 'index']);
+        $builder->connect('/', ['controller' => 'Dashboard', 'action' => 'index']);
         $builder->connect('/users', ['controller' => 'Users', 'action' => 'index']);
         $builder->connect('/images/upload', ['controller' => 'Images', 'action' => 'upload', '_method' => 'POST']);
         $builder->fallbacks();

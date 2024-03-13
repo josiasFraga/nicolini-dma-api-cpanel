@@ -13,7 +13,7 @@ use Cake\ORM\Entity;
  * @property \Cake\I18n\FrozenTime|null $modified
  * @property string $store_code
  * @property string $cutout_code
- * @property string $curout_type
+ * @property string $cutout_type
  */
 class StoreCutoutCode extends Entity
 {
@@ -31,6 +31,6 @@ class StoreCutoutCode extends Entity
         'modified' => true,
         'store_code' => true,
         'cutout_code' => true,
-        'curout_type' => true,
+        'cutout_type' => true,
     ];
 }

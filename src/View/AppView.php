@@ -37,5 +37,7 @@ class AppView extends View
      */
     public function initialize(): void
     {
+        $this->loadHelper('Form', ['className' => 'CakephpLte.Form']);
+        $this->loadHelper('Paginator', ['templates' => 'CakephpLte.paginator-templates']);
     }
 }

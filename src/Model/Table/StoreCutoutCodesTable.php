@@ -67,9 +67,9 @@ class StoreCutoutCodesTable extends Table
             ->notEmptyString('cutout_code');
 
         $validator
-            ->scalar('curout_type')
-            ->requirePresence('curout_type', 'create')
-            ->notEmptyString('curout_type');
+            ->scalar('cutout_type')
+            ->requirePresence('cutout_type', 'create')
+            ->notEmptyString('cutout_type');
 
         return $validator;
     }

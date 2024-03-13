@@ -82,6 +82,7 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
         // Load more plugins here
         $this->addPlugin('Authentication');
         $this->addPlugin('Authorization');
+        $this->addPlugin('CakephpLte', ['autoload' => true, 'bootstrap' => true, 'routes' => true]);
     }
 
     /**
@@ -194,28 +195,64 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
             $service->loadIdentifier('Authentication.JwtSubject');
 
         } elseif ($prefix === 'Admin') {
+    
             // Para o Admin, usamos autenticação baseada em sessão e formulário
-            $service->loadAuthenticator('Authentication.Session');
-            $service->loadAuthenticator('Authentication.Form', [
-                'fields' => [
-                    IdentifierInterface::CREDENTIAL_USERNAME => 'email',
-                    IdentifierInterface::CREDENTIAL_PASSWORD => 'password',
+            $service->setConfig([
+                'unauthenticatedRedirect' => Router::url([
+                        'prefix' => "Admin",
+                        'plugin' => null,
+                        'controller' => 'Users',
+                        'action' => 'login',
+                ]),
+                'queryParam' => 'redirect',
+            ]);
+    
+            $fields = [
+                IdentifierInterface::CREDENTIAL_USERNAME => 'login',
+                IdentifierInterface::CREDENTIAL_PASSWORD => 'pswd'
+            ];
+            
+            // Load the authenticators. Session should be first.
+            $service->loadAuthenticator('Authentication.Session',[
+                'resolver' => [
+                    'className' => 'Authentication.Orm',
+                    'userModel' => 'Users',
                 ],
+                'timeout' => 3600 * 24 * 7, // 7 dias
+            ]);
+    
+            $service->loadAuthenticator('Authentication.Form', [
+                'resolver' => [
+                    'className' => 'Authentication.Orm',
+                    'userModel' => 'Users',
+                ],
+                'fields' => $fields,
                 'loginUrl' => Router::url([
-                    'prefix' => 'Admin',
+                    'prefix' => "Admin",
+                    'plugin' => null,
                     'controller' => 'Users',
                     'action' => 'login',
                 ]),
             ]);
+    
+            // Load identifiers
             $service->loadIdentifier('Authentication.Password', [
-                'fields' => [
-                    'username' => 'email',
-                    'password' => 'password',
+                'fields' => $fields,
+                'passwordHasher' => [
+                    'className' => 'Authentication.Fallback',
+                    'hashers' => [
+                        'Authentication.Default',
+                        [
+                            'className' => 'Authentication.Legacy',
+                            'hashType' => 'md5',
+                            'salt' => false, // turn off default usage of salt
+                        ],
+                    ],
                 ],
                 'resolver' => [
                     'className' => 'Authentication.Orm',
-                    'userModel' => 'Users', // Ajuste para o nome do seu modelo de Usuários
-                ],
+                    'userModel' => 'Users',
+                ]
             ]);
         }
 
