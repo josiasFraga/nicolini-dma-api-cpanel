@@ -8,7 +8,7 @@ use Cake\Core\Configure; ?>
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title><?php echo Configure::read('CakephpLteCakephpLteTheme.title'); ?> | <?php echo $this->fetch('title'); ?></title>
+  <title>Nicolini DMA | <?php echo $this->fetch('title'); ?></title>
 
   <!-- Google Font: Source Sans Pro -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
@@ -169,6 +169,22 @@ use Cake\Core\Configure; ?>
 
       });
     </script>
+
+    <script>
+    $(document).ready(function() {
+        $('.decimal-mask').on('input', function() {
+            // Permite apenas números e uma vírgula
+            $(this).val($(this).val().replace(/[^0-9,]/g, ''));
+            // Substitui qualquer ocorrência de múltiplas vírgulas por uma única vírgula
+            $(this).val($(this).val().replace(/,+/g, ','));
+            // Impede a entrada de vírgula se já existir uma
+            if ((/,/g).test($(this).val())) {
+                $(this).val($(this).val().replace(/,,/g, ','));
+            }
+        });
+    });
+    </script>
+
 
 
 

@@ -84,4 +84,5 @@ class ExpectedYieldTable extends Table
 
         return $validator;
     }
+    
 }

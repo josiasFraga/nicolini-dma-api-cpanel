@@ -49,13 +49,12 @@
               ?>
             </div>
             <!-- /.card-body -->
-            
+
             <div class="row">
               <div class="col-12 text-right">
                 <?php echo $this->Form->submit(__('Submit')); ?>
               </div>
             </div>
-
 
           <?php echo $this->Form->end(); ?>
         </div>

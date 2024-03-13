@@ -21,9 +21,31 @@
           <?php echo $this->Form->create($storeCutoutCode, ['role' => 'form']); ?>
             <div class="card-body">
               <?php
-                echo $this->Form->control('store_code');
+                // Geração de valores para store_code
+                $storeCodes = [];
+                for ($i = 1; $i <= 18; $i++) {
+                    $storeCodes[sprintf('%03d', $i)] = sprintf('%03d', $i);
+                }
+
+                // Valores fixos para cutout_type
+                $cutoutTypes = [
+                    'Primeira' => 'Primeira',
+                    'Segunda' => 'Segunda',
+                    'Osso e Pelanca' => 'Osso e Pelanca',
+                ];
+
+                // Campos do formulário
+                echo $this->Form->control('store_code', [
+                    'type' => 'select',
+                    'options' => $storeCodes,
+                    'label' => 'Código da Loja',
+                ]);
                 echo $this->Form->control('cutout_code');
-                echo $this->Form->control('cutout_type');
+                echo $this->Form->control('cutout_type', [
+                    'type' => 'select',
+                    'options' => $cutoutTypes,
+                    'label' => 'Tipo de Corte',
+                ]);
               ?>
             </div>
             <!-- /.card-body -->

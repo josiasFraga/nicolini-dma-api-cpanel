@@ -105,3 +105,39 @@ msgstr "Formulário"
 
 msgid "Page {{page}} of {{pages}}, showing {{current}} record(s) out of {{count}} total"
 msgstr "Página {{page}} de {{pages}}, mostrando {{current}} itens de um total de {{count}}"
+
+msgid "Good Code"
+msgstr "Cód Produto"
+
+msgid "Prime"
+msgstr "Primeira"
+
+msgid "Second"
+msgstr "Segunda"
+
+msgid "Bones Skin"
+msgstr "Osso e Pelanca"
+
+msgid "First"
+msgstr "Primeira"
+
+msgid "Last"
+msgstr "Última"
+
+msgid "Previous"
+msgstr "Anterior"
+
+msgid "Next"
+msgstr "Próxima"
+
+msgid "first"
+msgstr "primeira"
+
+msgid "last"
+msgstr "última"
+
+msgid "previous"
+msgstr "anterior"
+
+msgid "next"
+msgstr "próxima"

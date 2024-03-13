@@ -9,7 +9,6 @@ use Cake\Event\EventInterface;
 class StoreCutoutCodesController extends AppController
 {
 
-
     public function initialize(): void
     {
         parent::initialize();

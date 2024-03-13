@@ -4,54 +4,98 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Controller\AppController;
+use Cake\Event\EventInterface;
 
-/**
- * ExpectedYield Controller
- *
- * @property \App\Model\Table\ExpectedYieldTable $ExpectedYield
- * @method \App\Model\Entity\ExpectedYield[]|\Cake\Datasource\ResultSetInterface paginate($object = null, array $settings = [])
- */
 class ExpectedYieldController extends AppController
 {
-    /**
-     * Index method
-     *
-     * @return \Cake\Http\Response|null|void Renders view
-     */
+
+    public function initialize(): void
+    {
+        parent::initialize();
+        $this->loadComponent('Authorization.Authorization');
+        //$this->Authorization->authorize(new PromocaoPolicy());
+    }
+
+    public function beforeFilter(EventInterface $event)
+    {
+        parent::beforeFilter($event);
+        //$this->Authentication->addUnauthenticatedActions(['login']); // Ação de login não requer autenticação
+        $this->Authorization->skipAuthorization();
+
+        if (!$this->Authentication->getIdentity()) {
+            return $this->redirect(['controller' => 'Users', 'action' => 'login']);
+        }
+
+        return true;
+    }
+
     public function index()
     {
-        $expectedYield = $this->paginate($this->ExpectedYield);
+        
 
-        $this->set(compact('expectedYield'));
+        $this->set('title', 'Códigos de recortes');
+
+        if ($this->request->is('post')) {
+            // Get the search term from the form data
+            $searchTerm = $this->request->getData('table_search');
+    
+            // Perform the search query based on the search term
+            $query = $this->ExpectedYield
+                ->find()
+                ->where([
+                    'OR' => [
+                        'ExpectedYield.store_code LIKE' => '%' . $searchTerm . '%',
+                        'ExpectedYield.good_code LIKE' => '%' . $searchTerm . '%',
+                        'ExpectedYield.description LIKE' => '%' . $searchTerm . '%',
+                    ]
+                ]);
+    
+            $this->paginate = [
+                'limit' => 20, // Set your desired limit per page
+            ];
+    
+            // Paginate the query before fetching the results
+            $expectedYield = $this->paginate($query);
+    
+            // Pass the search results to the view
+            $this->set(compact('expectedYield', 'searchTerm'));
+        } else {
+            // If the form has not been submitted, fetch all the service subcategories as usual
+            $this->paginate = [
+                // Pagination settings here
+            ];
+            $expectedYield = $this->paginate($this->ExpectedYield);
+            $this->set(compact('expectedYield'));
+        }
+
     }
 
-    /**
-     * View method
-     *
-     * @param string|null $id Expected Yield id.
-     * @return \Cake\Http\Response|null|void Renders view
-     * @throws \Cake\Datasource\Exception\RecordNotFoundException When record not found.
-     */
-    public function view($id = null)
-    {
-        $expectedYield = $this->ExpectedYield->get($id, [
-            'contain' => [],
-        ]);
-
-        $this->set(compact('expectedYield'));
-    }
 
 
-    /**
-     * Add method
-     *
-     * @return \Cake\Http\Response|null Redirects on successful add, renders view otherwise.
-     */
     public function add()
     {
         $expectedYield = $this->ExpectedYield->newEmptyEntity();
         if ($this->request->is('post')) {
-            $expectedYield = $this->ExpectedYield->patchEntity($expectedYield, $this->request->getData());
+            $dados = $this->request->getData();
+            $fieldsToFormat = ['prime', 'second', 'bones_skin'];
+    
+            foreach ($fieldsToFormat as $field) {
+                if (isset($dados[$field])) {
+                    $value = $dados[$field];
+                    // Caso haja "." e "," nos valores, remove o "." e substitui a "," por "."
+                    if (strpos($value, ',') !== false && strpos($value, '.') !== false) {
+                        $value = str_replace('.', '', $value);
+                        $value = str_replace(',', '.', $value);
+                    } elseif (strpos($value, ',') !== false) {
+                        // Caso haja somente ",", substitui por "."
+                        $value = str_replace(',', '.', $value);
+                    }
+                    // Atualiza o valor ajustado
+                    $dados[$field] = $value;
+                }
+            }
+            $expectedYield = $this->ExpectedYield->patchEntity($expectedYield, $dados);// Campos para formatar
+
             if ($this->ExpectedYield->save($expectedYield)) {
                 $this->Flash->success(__('The {0} has been saved.', 'Expected Yield'));
 
@@ -63,20 +107,32 @@ class ExpectedYieldController extends AppController
     }
 
 
-    /**
-     * Edit method
-     *
-     * @param string|null $id Expected Yield id.
-     * @return \Cake\Http\Response|null Redirects on successful edit, renders view otherwise.
-     * @throws \Cake\Network\Exception\NotFoundException When record not found.
-     */
+
     public function edit($id = null)
     {
         $expectedYield = $this->ExpectedYield->get($id, [
             'contain' => []
         ]);
         if ($this->request->is(['patch', 'post', 'put'])) {
-            $expectedYield = $this->ExpectedYield->patchEntity($expectedYield, $this->request->getData());
+            $dados = $this->request->getData();
+            $fieldsToFormat = ['prime', 'second', 'bones_skin'];
+    
+            foreach ($fieldsToFormat as $field) {
+                if (isset($dados[$field])) {
+                    $value = $dados[$field];
+                    // Caso haja "." e "," nos valores, remove o "." e substitui a "," por "."
+                    if (strpos($value, ',') !== false && strpos($value, '.') !== false) {
+                        $value = str_replace('.', '', $value);
+                        $value = str_replace(',', '.', $value);
+                    } elseif (strpos($value, ',') !== false) {
+                        // Caso haja somente ",", substitui por "."
+                        $value = str_replace(',', '.', $value);
+                    }
+                    // Atualiza o valor ajustado
+                    $dados[$field] = $value;
+                }
+            }
+            $expectedYield = $this->ExpectedYield->patchEntity($expectedYield, $dados);// Campos para formatar
             if ($this->ExpectedYield->save($expectedYield)) {
                 $this->Flash->success(__('The {0} has been saved.', 'Expected Yield'));
 
@@ -88,13 +144,6 @@ class ExpectedYieldController extends AppController
     }
 
 
-    /**
-     * Delete method
-     *
-     * @param string|null $id Expected Yield id.
-     * @return \Cake\Http\Response|null Redirects to index.
-     * @throws \Cake\Datasource\Exception\RecordNotFoundException When record not found.
-     */
     public function delete($id = null)
     {
         $this->request->allowMethod(['post', 'delete']);
