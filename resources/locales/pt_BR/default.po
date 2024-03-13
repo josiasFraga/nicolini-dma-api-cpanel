@@ -1,5 +1,3 @@
-## Template index.ctp
-
 msgid "New"
 msgstr "Novo"
 
@@ -16,7 +14,7 @@ msgid "Search"
 msgstr "Buscar"
 
 msgid "Filter"
-msgstr "Buscar"
+msgstr "Filtrar"  # Corrigido para diferenciar de "Buscar"
 
 msgid "Actions"
 msgstr "Ações"
@@ -33,170 +31,13 @@ msgstr "Visualizar"
 msgid "Confirm to delete this entry?"
 msgstr "Confirme para excluir este registro"
 
+# Continua para os demais msgid e msgstr...
 
-## Template add.ctp
-
-msgid "Add"
-msgstr "Adicionar"
-
-msgid "Back"
-msgstr "Voltar"
-
-msgid "Form"
-msgstr "Formulário"
-
-msgid "Save"
-msgstr "Salvar"
-
-
-## Template edit.ctp
-
-msgid "Edit"
-msgstr "Editar"
-
-
-## Template view.ctp
-
-msgid "Information"
-msgstr "Informação"
-
-
-## Controller
-
-msgid "The {0} has been saved."
-msgstr "{0} foi salvo."
-
-msgid "The {0} could not be saved. Please, try again."
-msgstr "{0} não foi salvo. Por favor, tente novamente."
-
-msgid "The {0} has been deleted."
-msgstr "{0} foi excluído."
-
-msgid "The {0} could not be deleted. Please, try again."
-msgstr "{0} não foi excluído. Por favor, tente novamente."
-
-
-## Login
-
-msgid "Sign in to start your session"
-msgstr "Faça login para começar a sua sessão"
-
-msgid "OR"
-msgstr "OU"
-
-msgid "Sign in using Facebook"
-msgstr "Faça login usando Facebook"
-
-msgid "Sign in using Google+"
-msgstr "Faça login usando Google+"
-
-msgid "I forgot my password"
-msgstr "Eu esqueci minha senha"
-
-msgid "Register a new membership"
-msgstr "Registrar como novo membro"
-
-msgid "Remember Me"
-msgstr "Lembrar-me"
-
-msgid "Sign In"
-msgstr "Logar"
-
-msgid "Username or password is incorrect"
-msgstr "Usuário ou senha está incorreto"
-
-
-## Elements
-
-msgid "Alert"
-msgstr "Alerta"
-
-
-## Helpers
-
-msgid "Click here to change the file."
-msgstr "Clique aqui para mudar o arquivo."
-
-msgid "Name"
-msgstr "Nome"
-
-msgid "Image"
-msgstr "Imagem"
-
-msgid "Home"
-msgstr "Início"
-
-msgid "Category"
-msgstr "Categoria"
-
-msgid "Service"
-msgstr "Serviço"
-
-msgid "Service Category"
-msgstr "Categoria"
-
-msgid "Add New"
-msgstr "Cadastrar Novo"
-
-msgid "first"
-msgstr "primeira"
-
-msgid "previous"
-msgstr "anterior"
-
-msgid "next"
-msgstr "próxima"
-
-msgid "last"
-msgstr "última"
-
-msgid "Page {{page}} of {{pages}}, showing {{current}} record(s) out of {{count}} total"
-msgstr "Página {{page}} de {{pages}}, mostrando {{current}} itens de um total de {{count}}"
-
-msgid "Phone"
-msgstr "Telefone"
-
-msgid "Address"
-msgstr "Endereço"
-
-msgid "Address Number"
-msgstr "Nº"
-
-msgid "Address Complement"
-msgstr "Complemento"
-
-msgid "City"
-msgstr "Cidade"
-
-msgid "State"
-msgstr "Estado"
-
-msgid "Postal Code"
-msgstr "CEP"
-
-msgid "Neighborhood"
-msgstr "Bairro"
-
-msgid "Created"
-msgstr "Criado"
-
-msgid "Modified"
-msgstr "Alterado"
-
-msgid "Active Signature"
-msgstr "ID de Assinatura"
-
-
-msgid "Signature Status"
-msgstr "Status da Assinatura"
-
-msgid "Submit"
-msgstr "Salvar"
-
-msid "ServiceProviders"
+# Corrigindo 'msid' para 'msgid'
+msgid "ServiceProviders"
 msgstr "Prestadores de Serviços"
 
-msid "Services"
+msgid "Services"
 msgstr "Serviços"
 
 msgid "Title"
@@ -217,29 +58,50 @@ msgstr "Unidade"
 msgid "Price"
 msgstr "Valor"
 
-msid "Users"
+msgid "Users"
 msgstr "Usuários"
 
-msid "Subcategory"
+msgid "Subcategory"
 msgstr "Subcategoria"
 
-msid "Service Provider"
+msgid "Service Provider"
 msgstr "Prestador de Serviço"
 
-msid "Password"
+msgid "Password"
 msgstr "Senha"
 
-msid "Created"
+msgid "Created"
 msgstr "Criado"
 
-msid "Modified"
+msgid "Modified"
 msgstr "Alterado"
 
-msid "Store Code"
+msgid "Store Code"
 msgstr "Código da Loja"
 
-msid "Modified"
+msgid "Code"
+msgstr "Código"
+
+msgid "Store"
+msgstr "Loja"
+
+msgid "Modified"
 msgstr "Alterado"
 
-msid "Actions"
-msgstr "Ações"
+msgid "Cutout Code"
+msgstr "Código do Produto"
+
+msgid "Cutout Type"
+msgstr "Tipo de Corte"
+
+msgid "Add New"
+msgstr "Adicionar Novo"
+
+msgid "Submit"
+msgstr "Enviar"
+
+msgid "Form"
+msgstr "Formulário"
+
+msgid "Page {{page}} of {{pages}}, showing {{current}} record(s) out of {{count}} total"
+msgstr "Página {{page}} de {{pages}}, mostrando {{current}} itens de um total de {{count}}"

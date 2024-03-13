@@ -32,9 +32,41 @@ class StoreCutoutCodesController extends AppController
 
     public function index()
     {
-        $storeCutoutCodes = $this->paginate($this->StoreCutoutCodes);
 
-        $this->set(compact('storeCutoutCodes'));
+        $this->set('title', 'Códigos de recortes');
+
+        if ($this->request->is('post')) {
+            // Get the search term from the form data
+            $searchTerm = $this->request->getData('table_search');
+    
+            // Perform the search query based on the search term
+            $query = $this->StoreCutoutCodes
+                ->find()
+                ->where([
+                    'OR' => [
+                        'StoreCutoutCodes.store_code LIKE' => '%' . $searchTerm . '%',
+                        'StoreCutoutCodes.cutout_code LIKE' => '%' . $searchTerm . '%',
+                        'StoreCutoutCodes.cutout_type LIKE' => '%' . $searchTerm . '%',
+                    ]
+                ]);
+    
+            $this->paginate = [
+                'limit' => 20, // Set your desired limit per page
+            ];
+    
+            // Paginate the query before fetching the results
+            $storeCutoutCodes = $this->paginate($query);
+    
+            // Pass the search results to the view
+            $this->set(compact('storeCutoutCodes', 'searchTerm'));
+        } else {
+            // If the form has not been submitted, fetch all the service subcategories as usual
+            $this->paginate = [
+                // Pagination settings here
+            ];
+            $storeCutoutCodes = $this->paginate($this->StoreCutoutCodes);
+            $this->set(compact('storeCutoutCodes'));
+        }
     }
 
 
