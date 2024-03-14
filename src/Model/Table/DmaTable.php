@@ -44,6 +44,11 @@ class DmaTable extends Table
         $this->setPrimaryKey('id');
 
         $this->addBehavior('Timestamp');
+
+        $this->belongsTo('Mercadorias', [
+            'foreignKey' => 'good_code',
+            'joinType' => 'LEFT',
+        ]);
     }
 
     /**

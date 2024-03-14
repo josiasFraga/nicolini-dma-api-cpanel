@@ -38,8 +38,13 @@ class MercadoriasTable extends Table
         parent::initialize($config);
 
         $this->setTable('wms_mercadorias');
-        $this->setDisplayField(['cd_codigoean', 'cd_codigoint']);
-        $this->setPrimaryKey(['cd_codigoean', 'cd_codigoint']);
+        $this->setDisplayField('cd_codigoint');
+        $this->setPrimaryKey('cd_codigoint');
+
+        $this->hasMany('Mercadorias', [
+            'foreignKey' => 'cd_codigoint',
+            'joinType' => 'INNER',
+        ]);
     }
 
     /**
