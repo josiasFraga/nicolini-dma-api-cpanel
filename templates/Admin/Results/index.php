@@ -22,7 +22,16 @@ for ($i = 1; $i <= 18; $i++) {
             <?= $this->Form->create(null, ['url' => ['action' => 'index'], 'role' => 'form']); ?>
             <div class="form-row align-items-center mb-3">
               <div class="col-auto">
-                <?= $this->Form->control('store_code', ['type' => 'select', 'options' => $storeCodes, 'class' => 'form-control', 'label' => 'Código da Loja' ]) ?>
+              <?= $this->Form->control('store_codes', [
+                    'type' => 'select',
+                    'options' => $storeCodes,
+                    'class' => 'form-control select2', // Adicione uma classe para identificar o campo
+                    'escape' => false,
+                    'multiple' => 'multiple',
+                    'style' => "width: 100%",
+                    'label' => 'Código da Loja',
+                    'value' => $selectedStoreCodes
+                ]); ?>
               </div>
               <div class="col-auto">
                 <?= $this->Form->control('date_accounting', ['type' => 'date', 'class' => 'form-control', 'label' => 'Data para Contabilização', 'value' => $dateAccounting]) ?>
@@ -42,16 +51,14 @@ for ($i = 1; $i <= 18; $i++) {
               <thead>
                 <!-- Linha de cabeçalho adicionada para agrupamento -->
                 <tr>
+                    <th rowspan="2" class="text-center">LOJA</th>
                     <th colspan="2" class="text-center">SAÍDAS</th>
                     <th colspan="2" class="text-center">ENTRADAS</th>
                     <th colspan="2" class="text-center">DIFERENÇA</th>
-                    <th colspan="2" class="text-center">PRIMEIRA</th>
-                    <th colspan="2" class="text-center">SEGUNDA</th>
-                    <th colspan="2" class="text-center">OSSO E PELANCA</th>
-                    <!-- Colspan dinâmico para cada código de retalho -->
-                    <?php /*foreach ($cutoutCodes as $code => $label): ?>
-                        <th colspan="3" class="text-center"><?= h($label->cutout_code) ?></th>
-                    <?php endforeach;*/ ?>
+                    <th colspan="3" class="text-center">PRIMEIRA</th>
+                    <th colspan="3" class="text-center">SEGUNDA</th>
+                    <th colspan="3" class="text-center">OSSO E PELANCA</th>
+     
                     <th rowspan="2" class="text-center">Posição Rank</th>
                 </tr>
                 <!-- Linha de cabeçalho existente -->
@@ -75,15 +82,39 @@ for ($i = 1; $i <= 18; $i++) {
                     <th class="text-center">R$ Realizados</th>
                     <th class="text-center">R$ Diferença</th>
                     <!-- Células dinâmicas para cada código de retalho -->
-                    <?php /*foreach ($cutoutCodes as $code => $label): ?>
-                        <th class="text-center">R$ Previstos</th>
-                        <th class="text-center">R$ Realizados</th>
-                        <th class="text-center">R$ Diferença</th>
-                    <?php endforeach; */ ?>
+              
                 </tr>
             </thead>
                   <tbody>
                       <!-- Iterar sobre os dados para preencher a tabela -->
+                        <?php foreach($dadosRelatorio as $loja => $dado): ?>
+                        <tr>
+                            <td class="text-center"><?= $loja ?></td>
+
+                            <td class="text-center"><?= $dado['total_saidas_kg'] ?></td>
+                            <td class="text-center"><?= number_format($dado['total_saidas_rs'],2,',','.') ?></td>
+
+                            <td class="text-center"><?= $dado['total_entradas_kg'] ?></td>
+                            <td class="text-center"><?= number_format($dado['total_entradas_rs'],2,',','.') ?></td>
+
+                            <td class="text-center"><?= $dado['diferenca_saidas_entradas_kg'] ?></td>
+                            <td class="text-center"><?= number_format($dado['diferenca_saidas_entradas_rs'],2,',','.') ?></td>
+
+                            <td class="text-center"><?= number_format($dado['rendimento_esperado_primeira'],2,',','.') ?></td>
+                            <td class="text-center"><?= number_format($dado['rendimento_executado_primeira'],2,',','.') ?></td>
+                            <td class="text-center"><?= number_format($dado['rendimento_dif_primeira'],2,',','.') ?></td>
+
+                            <td class="text-center"><?= number_format($dado['rendimento_esperado_segunda'],2,',','.') ?></td>
+                            <td class="text-center"><?= number_format($dado['rendimento_executado_segunda'],2,',','.') ?></td>
+                            <td class="text-center"><?= number_format($dado['rendimento_dif_segunda'],2,',','.') ?></td>
+
+                            <td class="text-center"><?= number_format($dado['rendimento_esperado_osso_pelanca'],2,',','.') ?></td>
+                            <td class="text-center"><?= number_format($dado['rendimento_executado_osso_pelanca'],2,',','.') ?></td>
+                            <td class="text-center"><?= number_format($dado['rendimento_dif_osso_pelanca'],2,',','.') ?></td>
+
+                            <td class="text-center"><?= $dado['posicao_rank'] ?></td>
+                        </tr>
+                        <?php endforeach; ?>
                   </tbody>
               </table>
             </div>
@@ -107,3 +138,10 @@ document.getElementById("printButton").addEventListener("click", function() {
   document.body.innerHTML = originalContent;
 });
 </script>
+
+<!-- Inclusão do CSS do Select2 -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+
+
+<!-- Inclusão do JS do Select2 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>

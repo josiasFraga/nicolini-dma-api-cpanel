@@ -16,6 +16,7 @@ use Cake\Core\Configure; ?>
   <?php echo $this->Html->css('CakephpLte./plugins/fontawesome-free/css/all.min.css'); ?>
   <!-- IonIcons -->
   <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
   <!-- Theme style -->
   <?php echo $this->Html->css('CakephpLte./css/adminlte.min.css'); ?>
     <?php echo $this->Html->css('CakephpLte./css/toastr.min.css'); ?>
@@ -85,6 +86,11 @@ use Cake\Core\Configure; ?>
 <?php echo $this->Html->script('CakephpLte./js/adminlte.js'); ?>
 <?php echo $this->Html->script('CakephpLte./js/toastr.min.js'); ?>
 <?php echo $this->Html->script('CakephpLte./js/script'); ?>
+
+
+<!-- Inclusão do JS do Select2 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
 <?php echo $this->fetch('script'); ?>
 
 
@@ -184,7 +190,14 @@ use Cake\Core\Configure; ?>
         });
     });
     </script>
-
+<script type="text/javascript">
+$(document).ready(function() {
+    $('.select2').select2({
+        placeholder: "Selecione uma opção", // Você pode customizar isso conforme necessário
+        allowClear: true // Permite limpar a seleção
+    });
+});
+</script>
 
 
 
