@@ -76,6 +76,8 @@ class ExpectedYieldController extends AppController
         if ($this->request->is('post')) {
             $dados = $this->request->getData();
             $fieldsToFormat = ['prime', 'second', 'bones_skin'];
+
+            $soma = 0;
     
             foreach ($fieldsToFormat as $field) {
                 if (isset($dados[$field])) {
@@ -90,16 +92,24 @@ class ExpectedYieldController extends AppController
                     }
                     // Atualiza o valor ajustado
                     $dados[$field] = $value;
+                    $soma += $value;
                 }
             }
-            $expectedYield = $this->ExpectedYield->patchEntity($expectedYield, $dados);// Campos para formatar
 
-            if ($this->ExpectedYield->save($expectedYield)) {
-                $this->Flash->success(__('The {0} has been saved.', 'Expected Yield'));
+            if ( $soma > 100 ) {
+                $this->Flash->error(__('O somatório das expectativas não pode passar de 100. Total='.$soma, 'Expected Yield'));
+            } else {
 
-                return $this->redirect(['action' => 'index']);
+                $expectedYield = $this->ExpectedYield->patchEntity($expectedYield, $dados);// Campos para formatar
+    
+                if ($this->ExpectedYield->save($expectedYield)) {
+                    $this->Flash->success(__('The {0} has been saved.', 'Expected Yield'));
+    
+                    return $this->redirect(['action' => 'index']);
+                }
+                $this->Flash->error(__('The {0} could not be saved. Please, try again.', 'Expected Yield'));
+
             }
-            $this->Flash->error(__('The {0} could not be saved. Please, try again.', 'Expected Yield'));
         }
         $this->set(compact('expectedYield'));
     }
@@ -114,7 +124,7 @@ class ExpectedYieldController extends AppController
         if ($this->request->is(['patch', 'post', 'put'])) {
             $dados = $this->request->getData();
             $fieldsToFormat = ['prime', 'second', 'bones_skin'];
-    
+            $soma = 0;
             foreach ($fieldsToFormat as $field) {
                 if (isset($dados[$field])) {
                     $value = $dados[$field];
@@ -128,15 +138,21 @@ class ExpectedYieldController extends AppController
                     }
                     // Atualiza o valor ajustado
                     $dados[$field] = $value;
+                    $soma += $value;
                 }
             }
-            $expectedYield = $this->ExpectedYield->patchEntity($expectedYield, $dados);// Campos para formatar
-            if ($this->ExpectedYield->save($expectedYield)) {
-                $this->Flash->success(__('The {0} has been saved.', 'Expected Yield'));
 
-                return $this->redirect(['action' => 'index']);
+            if ( $soma > 100 ) {
+                $this->Flash->error(__('O somatório das expectativas não pode passar de 100. Total='.$soma, 'Expected Yield'));
+            } else {
+                $expectedYield = $this->ExpectedYield->patchEntity($expectedYield, $dados);// Campos para formatar
+                if ($this->ExpectedYield->save($expectedYield)) {
+                    $this->Flash->success(__('The {0} has been saved.', 'Expected Yield'));
+    
+                    return $this->redirect(['action' => 'index']);
+                }
+                $this->Flash->error(__('The {0} could not be saved. Please, try again.', 'Expected Yield'));
             }
-            $this->Flash->error(__('The {0} could not be saved. Please, try again.', 'Expected Yield'));
         }
         $this->set(compact('expectedYield'));
     }

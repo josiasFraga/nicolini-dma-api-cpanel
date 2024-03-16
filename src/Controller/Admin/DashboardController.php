@@ -34,5 +34,12 @@ class DashboardController extends AppController
 
     }
 
+    public function login()
+    {
+
+        return $this->redirect(['action' => 'index']);
+
+    }
+
 }
 ?>

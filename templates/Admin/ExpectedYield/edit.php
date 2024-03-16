@@ -37,19 +37,16 @@
                 echo $this->Form->control('description');
                 echo $this->Form->control('prime', [
                   'class' => 'decimal-mask form-control',
-                  'label' => 'Prime',
                   'type' => 'text',
                   'escape' => false // Use 'escape' => false se você precisar que o HTML não seja escapado
                 ]);
                 echo $this->Form->control('second', [
                     'class' => 'decimal-mask form-control',
-                    'label' => 'Second',
                     'type' => 'text',
                     'escape' => false
                 ]);
                 echo $this->Form->control('bones_skin', [
                     'class' => 'decimal-mask form-control',
-                    'label' => 'Bones and Skin',
                     'type' => 'text',
                     'escape' => false
                 ]);
