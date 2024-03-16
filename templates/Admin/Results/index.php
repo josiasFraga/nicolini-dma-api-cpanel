@@ -87,9 +87,9 @@ for ($i = 1; $i <= 18; $i++) {
             </thead>
                   <tbody>
                       <!-- Iterar sobre os dados para preencher a tabela -->
-                        <?php foreach($dadosRelatorio as $loja => $dado): ?>
+                        <?php foreach($dadosRelatorio as $key => $dado): ?>
                         <tr>
-                            <td class="text-center"><?= $loja ?></td>
+                            <td class="text-center"><?= $dado['loja'] ?></td>
 
                             <td class="text-center"><?= $dado['total_saidas_kg'] ?></td>
                             <td class="text-center"><?= number_format($dado['total_saidas_rs'],2,',','.') ?></td>

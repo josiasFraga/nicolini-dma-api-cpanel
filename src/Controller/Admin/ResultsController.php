@@ -88,7 +88,9 @@ class ResultsController extends AppController
                         'rendimento_dif_segunda' => 0,
                         'rendimento_dif_osso_pelanca' => 0,
                         'encerramento' => '2000-01-01',
+                        'base_calc_rank' => 0,
                         'posicao_rank' => 1,
+                        'loja' => $storeCode
                     ];
                 }
 
@@ -196,12 +198,28 @@ class ResultsController extends AppController
                 $dadosRelatorio[$storeCode]['rendimento_dif_segunda'] = $dadosRelatorio[$storeCode]['rendimento_executado_segunda']-$dadosRelatorio[$storeCode]['rendimento_esperado_segunda'];
                 $dadosRelatorio[$storeCode]['rendimento_dif_osso_pelanca'] = $dadosRelatorio[$storeCode]['rendimento_executado_osso_pelanca']-$dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca'];
 
+                $dadosRelatorio[$storeCode]['base_calc_rank'] += 
+                    (!empty($dadosRelatorio[$storeCode]['rendimento_esperado_primeira']) ? $dadosRelatorio[$storeCode]['rendimento_executado_primeira'] / $dadosRelatorio[$storeCode]['rendimento_esperado_primeira'] : $dadosRelatorio[$storeCode]['rendimento_executado_primeira'])
+                    + (!empty($dadosRelatorio[$storeCode]['rendimento_esperado_segunda']) ? $dadosRelatorio[$storeCode]['rendimento_executado_segunda'] / $dadosRelatorio[$storeCode]['rendimento_esperado_segunda'] : $dadosRelatorio[$storeCode]['rendimento_esperado_segunda'])
+                    + (!empty($dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca']) ? $dadosRelatorio[$storeCode]['rendimento_executado_osso_pelanca'] / $dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca'] : $dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca'])
+                ;
+
                 if ( $dadosRelatorio[$storeCode]['encerramento'] < $dma['date_accounting']->format('Y-m-d') ){
                     $dadosRelatorio[$storeCode]['encerramento'] = $dma['date_accounting']->format('Y-m-d');
                 }
 
-            }
+            }// End foreach
+    
+            // Ordenar o array por base_calc_rank de forma decrescente
+            usort($dadosRelatorio, function($a, $b) {
+                return $b['base_calc_rank'] <=> $a['base_calc_rank'];
+            });
 
+            // Atribuir posicao_rank baseado na posição do array
+            foreach ($dadosRelatorio as $index => &$value) {
+                $value['posicao_rank'] = $index + 1;
+            }
+            unset($value);
     
         } 
 
