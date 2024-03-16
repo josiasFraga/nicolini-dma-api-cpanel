@@ -192,9 +192,9 @@ class ResultsController extends AppController
                 $dadosRelatorio[$storeCode]['diferenca_saidas_entradas_rs'] = $dadosRelatorio[$storeCode]['total_saidas_rs']-$dadosRelatorio[$storeCode]['total_entradas_rs'];
 
                 // Calcular a diferença de rendimento entre orçado e executado
-                $dadosRelatorio[$storeCode]['rendimento_dif_primeira'] = $dadosRelatorio[$storeCode]['rendimento_esperado_primeira']-$dadosRelatorio[$storeCode]['rendimento_executado_primeira'];
-                $dadosRelatorio[$storeCode]['rendimento_dif_segunda'] = $dadosRelatorio[$storeCode]['rendimento_esperado_segunda']-$dadosRelatorio[$storeCode]['rendimento_executado_segunda'];
-                $dadosRelatorio[$storeCode]['rendimento_dif_osso_pelanca'] = $dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca']-$dadosRelatorio[$storeCode]['rendimento_executado_osso_pelanca'];
+                $dadosRelatorio[$storeCode]['rendimento_dif_primeira'] = $dadosRelatorio[$storeCode]['rendimento_executado_primeira']-$dadosRelatorio[$storeCode]['rendimento_esperado_primeira'];
+                $dadosRelatorio[$storeCode]['rendimento_dif_segunda'] = $dadosRelatorio[$storeCode]['rendimento_executado_segunda']-$dadosRelatorio[$storeCode]['rendimento_esperado_segunda'];
+                $dadosRelatorio[$storeCode]['rendimento_dif_osso_pelanca'] = $dadosRelatorio[$storeCode]['rendimento_executado_osso_pelanca']-$dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca'];
 
                 if ( $dadosRelatorio[$storeCode]['encerramento'] < $dma['date_accounting']->format('Y-m-d') ){
                     $dadosRelatorio[$storeCode]['encerramento'] = $dma['date_accounting']->format('Y-m-d');
