@@ -4,8 +4,8 @@
 /config/.env
 /logs/*
 /tmp/*
-/vendor/*
 !/vendor/ahmedebead/
+/vendor/*
 
 # OS generated files #
 ######################
