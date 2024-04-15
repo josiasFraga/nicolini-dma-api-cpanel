@@ -53,8 +53,6 @@ class ResultsController extends AppController
             $this->loadModel('Mercadorias');
             $this->loadModel('ExpectedYield');
     
-            // Exemplo de como começar a construir sua consulta
-            // Isso precisará ser expandido e adaptado às suas necessidades específicas
             $query = $this->Dma->find()
                 ->contain(['Mercadorias'])
                 ->where([

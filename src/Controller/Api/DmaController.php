@@ -64,6 +64,10 @@ class DmaController extends AppController
         }
     
         $entitiesToSave = $this->prepareEntities($dados, $store_code, $date_accounting);
+
+        if ( $entitiesToSave === false ) {
+            return $this->jsonResponse('erro', 'Não é possível salvar lançamentos.');
+        }
     
         if ($this->Dma->saveMany($entitiesToSave)) {
             return $this->jsonResponse('ok', 'DMA finalizado com sucesso!');
@@ -124,6 +128,32 @@ class DmaController extends AppController
     private function prepareEntities($dados, $store_code, $date_accounting)
     {
         $entities = [];
+
+        $this->loadModel('StoreCutoutCodes');
+
+        $first_good_data = $this->StoreCutoutCodes->find('all')
+        ->where([            
+            'StoreCutoutCodes.store_code' => $store_code,
+            'StoreCutoutCodes.cutout_type' => 'PRIMEIRA'
+        ])
+        ->first()
+        ->toArray();
+
+        $second_good_data = $this->StoreCutoutCodes->find('all')
+        ->where([            
+            'StoreCutoutCodes.store_code' => $store_code,
+            'StoreCutoutCodes.cutout_type' => 'SEGUNDA'
+        ])
+        ->first()
+        ->toArray();
+
+        $bones_and_skin_data = $this->StoreCutoutCodes->find('all')
+        ->where([            
+            'StoreCutoutCodes.store_code' => $store_code,
+            'StoreCutoutCodes.cutout_type' => 'OSSO E PELANCA'
+        ])
+        ->first()
+        ->toArray();
     
         foreach( $dados['saidas'] as $key => $saida ) {
             $entities[] = $this->Dma->newEntity([
@@ -138,7 +168,178 @@ class DmaController extends AppController
             ]);
         }
 
+        $dados_entradas_salvar = [];
+
         foreach( $dados['entradas'] as $key => $entrada ) {
+
+            $first_quantity = str_replace(',','.',str_replace('.','',$entrada['primeMeatKg']));
+            $second_quantity = str_replace(',','.',str_replace('.','',$entrada['secondMeatKg']));
+            $bones_and_skin_quantity = str_replace(',','.',str_replace('.','',$entrada['boneAndSkinKg']));
+
+
+            if ( $first_quantity > 0 ) {
+
+                // Procura itens negativos para diminuir
+                foreach( $dados['entradas'] as $key_remover => $entrada_remover ) {
+                    $first_quantity_remove = str_replace(',','.',str_replace('.','',$entrada_remover['primeMeatKg']));
+                    if ( $first_quantity_remove < 0 ) {
+
+                        $first_new_quantity = $first_quantity - $first_quantity_remove;
+
+                        if ( $first_new_quantity < 0 ){
+                            $first_quantity = 0;
+                            $dados['entradas'][$key]['primeMeatKg'] = 0;
+                            $dados['entradas'][$key_remover]['primeMeatKg'] = $first_quantity_remove - $first_quantity_remove;
+                        } else {
+                            $first_quantity = $first_new_quantity;
+                            $dados['entradas'][$key]['primeMeatKg'] = $first_new_quantity;
+                            $dados['entradas'][$key_remover]['primeMeatKg'] = 0;
+                        }
+
+                    }
+                }
+
+            } else if ( $first_quantity < 0 ) {
+
+                foreach( $dados['entradas'] as $key_remover => $entrada_remover ) {
+                    $first_quantity_remove = str_replace(',','.',str_replace('.','',$entrada_remover['primeMeatKg']));
+                    if ( $first_quantity_remove > 0 ) {
+
+                        $first_new_quantity =  $first_quantity_remove + $first_quantity;
+
+                        if ( $first_new_quantity >= 0 ){
+                            $first_quantity = 0;                            
+                            $dados['entradas'][$key_remover]['primeMeatKg'] = $first_new_quantity;
+                            $dados['entradas'][$key]['primeMeatKg'] = 0;
+                        } else {
+                            $first_quantity = $first_quantity + $dados['entradas'][$key_remover]['primeMeatKg'];
+                            $dados['entradas'][$key_remover]['primeMeatKg'] = 0;
+                            $dados['entradas'][$key]['primeMeatKg'] = $first_quantity + $dados['entradas'][$key_remover]['primeMeatKg'];
+                        }
+
+                    }
+                }
+
+                if ( $first_quantity < 0 ) {
+                    return false;
+                }
+
+                
+            }
+
+            if ( $second_quantity > 0 ) {
+
+                // Procura itens negativos para diminuir
+                foreach( $dados['entradas'] as $key_remover => $entrada_remover ) {
+                    $second_quantity_remove = str_replace(',','.',str_replace('.','',$entrada_remover['secondMeatKg']));
+                    if ( $second_quantity_remove < 0 ) {
+
+                        $second_new_quantity = $second_quantity - $second_quantity_remove;
+
+                        if ( $second_new_quantity < 0 ){
+                            $second_quantity = 0;
+                            $dados['entradas'][$key]['secondMeatKg'] = 0;
+                            $dados['entradas'][$key_remover]['secondMeatKg'] = $second_quantity_remove - $second_quantity_remove;
+                        } else {
+                            $second_quantity = $second_new_quantity;
+                            $dados['entradas'][$key]['secondMeatKg'] = $second_new_quantity;
+                            $dados['entradas'][$key_remover]['secondMeatKg'] = 0;
+                        }
+
+                    }
+                }
+
+            } else if ( $second_quantity < 0 ) {
+
+                foreach( $dados['entradas'] as $key_remover => $entrada_remover ) {
+                    $second_quantity_remove = str_replace(',','.',str_replace('.','',$entrada_remover['secondMeatKg']));
+                    if ( $second_quantity_remove > 0 ) {
+
+                        $second_new_quantity =  $second_quantity_remove + $second_quantity;
+
+                        if ( $second_new_quantity >= 0 ){
+                            $second_quantity = 0;                            
+                            $dados['entradas'][$key_remover]['secondMeatKg'] = $second_new_quantity;
+                            $dados['entradas'][$key]['secondMeatKg'] = 0;
+                        } else {
+                            $second_quantity = $second_quantity + $dados['entradas'][$key_remover]['secondMeatKg'];
+                            $dados['entradas'][$key_remover]['secondMeatKg'] = 0;
+                            $dados['entradas'][$key]['secondMeatKg'] = $second_quantity + $dados['entradas'][$key_remover]['secondMeatKg'];
+                        }
+
+                    }
+                }
+
+                if ( $second_quantity < 0 ) {
+                    return false;
+                }
+
+                
+            }
+
+            if ( $bones_and_skin_quantity > 0 ) {
+
+                // Procura itens negativos para diminuir
+                foreach( $dados['entradas'] as $key_remover => $entrada_remover ) {
+                    $bones_and_skin_quantity_remove = str_replace(',','.',str_replace('.','',$entrada_remover['boneAndSkinKg']));
+                    if ( $bones_and_skin_quantity_remove < 0 ) {
+
+                        $bones_and_skin_new_quantity = $bones_and_skin_quantity - $bones_and_skin_quantity_remove;
+
+                        if ( $bones_and_skin_new_quantity < 0 ){
+                            $bones_and_skin_quantity = 0;
+                            $dados['entradas'][$key]['boneAndSkinKg'] = 0;
+                            $dados['entradas'][$key_remover]['boneAndSkinKg'] = $bones_and_skin_quantity_remove - $bones_and_skin_quantity_remove;
+                        } else {
+                            $bones_and_skin_quantity = $bones_and_skin_new_quantity;
+                            $dados['entradas'][$key]['boneAndSkinKg'] = $bones_and_skin_new_quantity;
+                            $dados['entradas'][$key_remover]['boneAndSkinKg'] = 0;
+                        }
+
+                    }
+                }
+
+            } else if ( $bones_and_skin_quantity < 0 ) {
+
+                foreach( $dados['entradas'] as $key_remover => $entrada_remover ) {
+                    $bones_and_skin_quantity_remove = str_replace(',','.',str_replace('.','',$entrada_remover['boneAndSkinKg']));
+                    if ( $bones_and_skin_quantity_remove > 0 ) {
+
+                        $bones_and_skin_new_quantity =  $bones_and_skin_quantity_remove + $bones_and_skin_quantity;
+
+                        if ( $bones_and_skin_new_quantity >= 0 ){
+                            $bones_and_skin_quantity = 0;                            
+                            $dados['entradas'][$key_remover]['boneAndSkinKg'] = $bones_and_skin_new_quantity;
+                            $dados['entradas'][$key]['boneAndSkinKg'] = 0;
+                        } else {
+                            $bones_and_skin_quantity = $bones_and_skin_quantity + $dados['entradas'][$key_remover]['boneAndSkinKg'];
+                            $dados['entradas'][$key_remover]['boneAndSkinKg'] = 0;
+                            $dados['entradas'][$key]['boneAndSkinKg'] = $bones_and_skin_quantity + $dados['entradas'][$key_remover]['boneAndSkinKg'];
+                        }
+
+                    }
+                }
+
+                if ( $bones_and_skin_quantity < 0 ) {
+                    return false;
+                    /*return $this->jsonResponse('erro', 'Você inseriu um valor negativo em osso e pelanca muito grande.');
+                    debug($bones_and_skin_quantity);
+                    debug('trews');
+                    die(0);*/
+                }
+
+                
+            }
+
+            $dados_entradas_salvar[] = $dados['entradas'][$key];
+            
+        }
+
+        foreach( $dados_entradas_salvar as $key => $entrada) {
+
+            $first_quantity = str_replace(',','.',str_replace('.','',$entrada['primeMeatKg']));
+            $second_quantity = str_replace(',','.',str_replace('.','',$entrada['secondMeatKg']));
+            $bones_and_skin_quantity = str_replace(',','.',str_replace('.','',$entrada['boneAndSkinKg']));
 
             $entities[] = $this->Dma->newEntity([
                 'store_code' => $store_code,
@@ -147,10 +348,10 @@ class DmaController extends AppController
                 'date_accounting' => $date_accounting,
                 'type' => 'Entrada',
                 'cutout_type' => "Primeira",
-                'good_code' => null,
-                'quantity' => str_replace(',','.',str_replace('.','',$entrada['primeMeatKg']))
+                'good_code' => str_pad($first_good_data['cutout_code'], 7, "0", STR_PAD_LEFT),
+                'quantity' => $first_quantity
             ]);
-
+    
             $entities[] = $this->Dma->newEntity([
                 'store_code' => $store_code,
                 'user' => $dados['user'],
@@ -158,10 +359,10 @@ class DmaController extends AppController
                 'date_accounting' => $date_accounting,
                 'type' => 'Entrada',
                 'cutout_type' => "Segunda",
-                'good_code' => null,
-                'quantity' => str_replace(',','.',str_replace('.','',$entrada['secondMeatKg']))
+                'good_code' => str_pad($second_good_data['cutout_code'], 7, "0", STR_PAD_LEFT),
+                'quantity' => $second_quantity
             ]);
-
+    
             $entities[] = $this->Dma->newEntity([
                 'store_code' => $store_code,
                 'user' => $dados['user'],
@@ -169,9 +370,10 @@ class DmaController extends AppController
                 'date_accounting' => $date_accounting,
                 'type' => 'Entrada',
                 'cutout_type' => "Osso e Pelanca",
-                'good_code' => null,
-                'quantity' => str_replace(',','.',str_replace('.','',$entrada['boneAndSkinKg']))
-            ]);
+                'good_code' => str_pad($bones_and_skin_data['cutout_code'], 7, "0", STR_PAD_LEFT),
+                'quantity' => $bones_and_skin_quantity
+            ]);            
+
         }
     
         return $entities;
