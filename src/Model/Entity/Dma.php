@@ -18,6 +18,7 @@ use Cake\ORM\Entity;
  * @property string $type
  * @property string|null $cutout_type
  * @property string|null $good_code
+ * @property string|null $coust
  * @property float $quantity
  */
 class Dma extends Entity
@@ -42,5 +43,6 @@ class Dma extends Entity
         'cutout_type' => true,
         'good_code' => true,
         'quantity' => true,
+        'coust' => true,
     ];
 }

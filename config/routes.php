@@ -130,9 +130,29 @@ return static function (RouteBuilder $routes) {
             'action' => 'finish'
         ])->setMethods(['POST']);
 
+        $builder->connect('/dma/save-income', [
+            'controller' => 'Dma',
+            'action' => 'saveIncome'
+        ])->setMethods(['POST']);
+
+        $builder->connect('/dma/save-outcome', [
+            'controller' => 'Dma',
+            'action' => 'saveOutcome'
+        ])->setMethods(['POST']);
+
         $builder->connect('/dma/next-date', [
             'controller' => 'Dma',
             'action' => 'nextDate'
+        ])->setMethods(['GET']);
+
+        $builder->connect('/dma/load-outcomes', [
+            'controller' => 'Dma',
+            'action' => 'loadOutcomes'
+        ])->setMethods(['GET']);
+
+        $builder->connect('/dma/load-incomes', [
+            'controller' => 'Dma',
+            'action' => 'loadIncomes'
         ])->setMethods(['GET']);
         
         // Você pode adicionar mais rotas da API conforme necessário
