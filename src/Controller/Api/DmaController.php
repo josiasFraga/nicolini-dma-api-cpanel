@@ -202,7 +202,12 @@ class DmaController extends AppController
             else if ( $key === 'Segunda' ) {
                 $calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'] + $setenta_porcento_diferenca;
                 $calculos_entradas[$key]['custo_medio'] = $calculos_entradas[$key]['custo_total']/$calculos_entradas[$key]['kg'];
-            } else {
+            } 
+            else if ( $key === 'Osso e Pelanca' ) {
+                $calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'] + $setenta_porcento_diferenca;
+                $calculos_entradas[$key]['custo_medio'] = 1;
+            } 
+            else {
                 $calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'];
                 $calculos_entradas[$key]['custo_medio'] = $calculos_entradas[$key]['custo_total_prev'];
             }
