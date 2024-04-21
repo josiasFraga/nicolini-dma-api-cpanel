@@ -88,7 +88,8 @@ class ResultsController extends AppController
                         'encerramento' => '2000-01-01',
                         'base_calc_rank' => 0,
                         'posicao_rank' => 1,
-                        'loja' => $storeCode
+                        'loja' => $storeCode,
+                        'finalizado_por' => ''
                     ];
                 }
 
@@ -98,6 +99,14 @@ class ResultsController extends AppController
 
                 $tipo_dma = $dma['type'];
                 $dma_qtd = $dma['quantity'];
+
+                if ( $dma['ended'] === 'N' ) {
+                    $dadosRelatorio[$storeCode]['finalizado_por'] = 'em andamento';
+                } else if ( $dma['ended'] === 'Y' && $dma['ended_by_cron'] === 'Y' ) {
+                    $dadosRelatorio[$storeCode]['finalizado_por'] = 'Sistema';
+                } else if ( $dma['ended'] === 'Y' && $dma['ended_by_cron'] === 'N' ) {
+                    $dadosRelatorio[$storeCode]['finalizado_por'] = $dma['user'];
+                }
 
                 // Se o registro de DMA for do tipo saída
                 if ( $tipo_dma == 'Saida' ) {

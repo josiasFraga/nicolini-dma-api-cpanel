@@ -531,7 +531,7 @@ class DmaController extends AppController
                     return $this->jsonResponse('erro', 'Nenhuma entrada informada.');
                 }
 
-                finishDma($entradas, $saidas, 'Y');
+                $this->finishDma($entradas, $saidas, 'Y');
 
             }
 

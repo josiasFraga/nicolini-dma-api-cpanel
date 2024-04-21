@@ -60,6 +60,7 @@ for ($i = 1; $i <= 18; $i++) {
                     <th colspan="3" class="text-center">OSSO E PELANCA</th>
      
                     <th rowspan="2" class="text-center">Posição Rank</th>
+                    <th rowspan="2" class="text-center">Finalizado por</th>
                 </tr>
                 <!-- Linha de cabeçalho existente -->
                 <tr>
@@ -113,6 +114,7 @@ for ($i = 1; $i <= 18; $i++) {
                             <td class="text-center"><?= number_format($dado['rendimento_dif_osso_pelanca'],2,',','.') ?></td>
 
                             <td class="text-center"><?= $dado['posicao_rank'] ?></td>
+                            <td class="text-center"><?= $dado['finalizado_por'] ?></td>
                         </tr>
                         <?php endforeach; ?>
                   </tbody>
