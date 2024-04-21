@@ -28,20 +28,40 @@ class DmaController extends AppController
         $jwtPayload = $this->request->getAttribute('jwtPayload');
         $userId = $jwtPayload->sub;
         $dados = json_decode($this->request->getData('dados'), true);
-
         //Log::debug($this->request->getData('dados'));
-    
-        // Verifica a presença e não-vazio de 'saidas' e 'entradas'
-        if (empty($dados['saidas'])) {
+
+        
+        $this->loadModel('Dma');    
+        $this->loadModel('Users');
+        $this->loadModel('Mercadorias');
+
+        $store_code = $dados['store_code'];
+
+        $entradas = $this->Dma->find('all')
+        ->where([
+            'Dma.ended' => 'N',
+            'Dma.user' => $userId,
+            'Dma.type' => 'Entrada',
+            'Dma.store_code' => $store_code
+        ])
+        ->toArray();
+
+        $saidas = $this->Dma->find('all')
+        ->where([
+            'Dma.ended' => 'N',
+            'Dma.user' => $userId,
+            'Dma.type' => 'Saida',
+            'Dma.store_code' => $store_code
+        ])
+        ->toArray();
+ 
+        if ( count($saidas) == 0 ) {
             return $this->jsonResponse('erro', 'Nenhuma saída informada.');
         }
     
-        if (empty($dados['entradas'])) {
+        if ( count($entradas) == 0 ) {
             return $this->jsonResponse('erro', 'Nenhuma entrada informada.');
         }
-    
-        $this->loadModel('Users');
-        $this->loadModel('Dma');
     
         if ($dados['user'] != $userId) {
             return $this->jsonResponse('erro', 'Usuário informado diferente do usuário logado no app');
@@ -56,23 +76,165 @@ class DmaController extends AppController
         }
     
         // Tratamento de datas
-        $store_code = $dados['store_code'];
         $date_accounting = $this->calculateDateAccounting($store_code);
 
         if ( !$date_accounting ) {
             return $this->jsonResponse('erro', 'Não é possível salvar lançamentos para depois de amanhã.');
         }
-    
-        $entitiesToSave = $this->prepareEntities($dados, $store_code, $date_accounting, 'Y');
+        
+        $custo_saidas_total = 0;
+        $peso_saidas_total = 0;
 
-        if ( $entitiesToSave === false ) {
-            return $this->jsonResponse('erro', 'Não é possível salvar lançamentos.');
+        foreach( $saidas as $key => $saida ){
+
+            $good_code = $saida['good_code'];
+            $quantity = $saida['quantity'];
+   
+            $dados_mercadoria = $this->Mercadorias->find('all')
+            ->where([
+                'Mercadorias.cd_codigoint' => str_pad($good_code, 7, "0", STR_PAD_LEFT)
+            ])
+            ->first();
+
+            if ( !$dados_mercadoria ) {
+                return $this->jsonResponse('erro', 'Dados da mercadoria '.$good_code.' não encontrados!');
+            }
+
+            $dados_mercadoria = $dados_mercadoria->toArray();
+
+            $custo_total = 0;
+            if ( $dados_mercadoria['opcusto'] == "M" ) {
+                $custo_total = $saida['quantity'] * $dados_mercadoria['customed'];
+            } else {
+                $custo_total = $saida['quantity'] * $dados_mercadoria['custotab'];
+            }
+
+            $custo_saidas_total += $custo_total;
+            $peso_saidas_total += $saida['quantity'];
         }
+
+        $custo_saidas_medio = $custo_saidas_total/$peso_saidas_total;
+        $peso_entradas_total = 0;
+        $custo_entradas_total = 0;
+
+        // Calcula os totais
+        foreach( $entradas as $key => $entrada ){
+
+            $good_code = $saida['good_code'];
+            $quantity = $saida['quantity'];
+   
+            $dados_mercadoria = $this->Mercadorias->find('all')
+            ->where([
+                'Mercadorias.cd_codigoint' => str_pad($good_code, 7, "0", STR_PAD_LEFT)
+            ])
+            ->first();
+
+            if ( !$dados_mercadoria ) {
+                return $this->jsonResponse('erro', 'Dados da mercadoria '.$good_code.' não encontrados!');
+            }
+
+            $dados_mercadoria = $dados_mercadoria->toArray();
+
+            $entradas[$key]['good'] = $dados_mercadoria;
+
+            $custo_total = 0;
+            if ( $dados_mercadoria['opcusto'] == "M" ) {
+                $custo_total = $entrada['quantity'] * $dados_mercadoria['customed'];
+            } else {
+                $custo_total = $entrada['quantity'] * $dados_mercadoria['custotab'];
+            }
+
+            $custo_entradas_total += $custo_total;
+            $peso_entradas_total += $entrada['quantity'];
+        }
+
+        $calculos_entradas = [];
+
+        // Calcula a representatividade
+        foreach( $entradas as $key => $entrada ){
+
+            $good_code = $saida['good_code'];
+            $quantity = $saida['quantity'];
+   
+            $custo_total = 0;
+   
+            if ( $entrada['good']['opcusto'] == "M" ) {
+                $custo_total = $entrada['quantity'] * $dados_mercadoria['customed'];
+            } else {
+                $custo_total = $entrada['quantity'] * $dados_mercadoria['custotab'];
+            }
+
+            if ( $entrada['cutout_type'] == 'Osso a Descarte' ) {
+                $calculos_entradas[$entrada['cutout_type']]['representatividade'] = (100*1)/$peso_entradas_total;
+                $calculos_entradas[$entrada['cutout_type']]['kg'] = 1;
+            } else if ( $entrada['cutout_type'] == 'Osso e Pelanca' ) {
+                $calculos_entradas[$entrada['cutout_type']]['representatividade'] = (100*$entrada['quantity'])/$peso_entradas_total;
+                $calculos_entradas[$entrada['cutout_type']]['kg'] = $entrada['quantity'];                
+            }else {
+                $calculos_entradas[$entrada['cutout_type']]['representatividade'] = (100*$entrada['quantity'])/$peso_entradas_total;
+                $calculos_entradas[$entrada['cutout_type']]['kg'] = $entrada['quantity'];
+            }
+
+        }
+
+        $total_saidas_prev = 0;
+        foreach( $calculos_entradas as $key => $calculo ){
+            if ( $key == 'Osso a Descarte' ) {
+                $calculos_entradas[$key]['custo_total_prev'] = $custo_saidas_medio;
+            } else if( $key == 'Osso e Pelanca' ) {
+                $calculos_entradas[$key]['custo_total_prev'] = $calculos_entradas[$key]['kg'];
+            } else {
+                $calculos_entradas[$key]['custo_total_prev'] = $custo_saidas_total*($calculo['representatividade']/100);
+            }
+
+            $total_saidas_prev += $calculos_entradas[$key]['custo_total_prev'];
+        }
+
+        $dif_total_saidas_x_total_entradas_prev = $custo_saidas_total-$total_saidas_prev;
+        $trinta_porcento_diferenca = $dif_total_saidas_x_total_entradas_prev*0.3;
+        $setenta_porcento_diferenca = $dif_total_saidas_x_total_entradas_prev*0.7;
+        
+        foreach( $calculos_entradas as $key => $calculo ){
+            if ( $key === 'Primeira' ) {
+                $calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'] + $trinta_porcento_diferenca;
+                $calculos_entradas[$key]['custo_medio'] = $calculos_entradas[$key]['custo_total']/$calculos_entradas[$key]['kg'];
+            }
+            else if ( $key === 'Segunda' ) {
+                $calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'] + $setenta_porcento_diferenca;
+                $calculos_entradas[$key]['custo_medio'] = $calculos_entradas[$key]['custo_total']/$calculos_entradas[$key]['kg'];
+            } else {
+                $calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'];
+                $calculos_entradas[$key]['custo_medio'] = $calculos_entradas[$key]['custo_total_prev'];
+            }
+   
+        }
+
+        $novas_entradas = [];
+        foreach( $entradas as $key => $entrada ){
+
+            $novas_entradas[] = [
+                'id' => $entrada['id'],
+                'cost' => $calculos_entradas[$entrada['cutout_type']]['custo_medio'],
+                'ended' => 'Y'
+            ];
+        }
+
+        $novas_saidas = [];
+        foreach( $saidas as $key => $saida ){
+
+            $novas_saidas[] = [
+                'id' => $saida['id'],
+                'ended' => 'Y'
+            ];
+        }
+
+        $dmaEntities = $this->Dma->patchEntities(array_merge($entradas, $saidas), array_merge($novas_entradas, $novas_saidas));
     
-        if ($this->Dma->saveMany($entitiesToSave)) {
+        if ($this->Dma->saveMany($dmaEntities)) {
             return $this->jsonResponse('ok', 'DMA finalizado com sucesso!');
         } else {
-            $errors = $this->extractErrors($entitiesToSave);
+
+            $errors = $dmaEntities->getErros();
             return $this->jsonResponse('erro', 'Ocorreu um erro ao finalizar o DMA.', $errors);
         }
     }
@@ -123,294 +285,6 @@ class DmaController extends AppController
         }
     
         return date('Y-m-d');
-    }
-    
-    private function prepareEntities($dados, $store_code, $date_accounting, $ended)
-    {
-        $entities = [];
-
-        $this->loadModel('StoreCutoutCodes');
-        $this->loadModel('Mercadorias');
-
-        $first_good_data = $this->StoreCutoutCodes->find('all')
-        ->where([            
-            'StoreCutoutCodes.store_code' => $store_code,
-            'StoreCutoutCodes.cutout_type' => 'PRIMEIRA'
-        ])
-        ->first()
-        ->toArray();
-
-        $second_good_data = $this->StoreCutoutCodes->find('all')
-        ->where([            
-            'StoreCutoutCodes.store_code' => $store_code,
-            'StoreCutoutCodes.cutout_type' => 'SEGUNDA'
-        ])
-        ->first()
-        ->toArray();
-
-        $bones_and_skin_data = $this->StoreCutoutCodes->find('all')
-        ->where([            
-            'StoreCutoutCodes.store_code' => $store_code,
-            'StoreCutoutCodes.cutout_type' => 'OSSO E PELANCA'
-        ])
-        ->first()
-        ->toArray();
-
-        $custo_total_saidas = 0;
-        $peso_total_saidas = 0;
-        $custo_med_saidas = 0;
-    
-        foreach( $dados['saidas'] as $key => $saida ) {
-            $entities[] = $this->Dma->newEntity([
-                'store_code' => $store_code,
-                'user' => $dados['user'],
-                'date_movement' => date('Y-m-d'),
-                'date_accounting' => $date_accounting,
-                'type' => 'Saida',
-                'cutout_type' => null,
-                'good_code' => str_pad($saida['goodCode'], 7, "0", STR_PAD_LEFT),
-                'quantity' => str_replace(',','.',str_replace('.','',$saida['kg'])),
-                'ended' => $ended
-            ]);
-
-            $dados_mercadoria = $this->Mercadorias->find('all')
-            ->where([
-                'Mercadorias.cd_codigoint' => str_pad($saida['goodCode'], 7, "0", STR_PAD_LEFT)
-            ])
-            ->first()
-            ->toArray();
-
-            $custo_total = 0;
-
-            if ( count($dados_mercadoria) > 0 && $dados_mercadoria['opcusto'] == "M" ) {
-                $custo_total = str_replace(',','.',str_replace('.','',$saida['kg'])) * $dados_mercadoria['customed'];
-            } else {
-                $custo_total = str_replace(',','.',str_replace('.','',$saida['kg'])) * $dados_mercadoria['custotab'];
-            }
-
-            $custo_total_saidas += $custo_total;
-            $peso_total_saidas += str_replace(',','.',str_replace('.','',$saida['kg']));
-        }
-
-        $custo_med_saidas = $custo_total_saidas/$peso_total_saidas;
-
-
-        debug($custo_total_saidas);
-        debug($peso_total_saidas);
-        debug($custo_med_saidas);
-        die();
-
-        $dados_entradas_salvar = [];
-
-        foreach( $dados['entradas'] as $key => $entrada ) {
-
-            $first_quantity = str_replace(',','.',str_replace('.','',$entrada['primeMeatKg']));
-            $second_quantity = str_replace(',','.',str_replace('.','',$entrada['secondMeatKg']));
-            $bones_and_skin_quantity = str_replace(',','.',str_replace('.','',$entrada['boneAndSkinKg']));
-
-            if ( $first_quantity > 0 ) {
-
-                // Procura itens negativos para diminuir
-                foreach( $dados['entradas'] as $key_remover => $entrada_remover ) {
-                    $first_quantity_remove = str_replace(',','.',str_replace('.','',$entrada_remover['primeMeatKg']));
-                    if ( $first_quantity_remove < 0 ) {
-
-                        $first_new_quantity = $first_quantity - $first_quantity_remove;
-
-                        if ( $first_new_quantity < 0 ){
-                            $first_quantity = 0;
-                            $dados['entradas'][$key]['primeMeatKg'] = 0;
-                            $dados['entradas'][$key_remover]['primeMeatKg'] = $first_quantity_remove - $first_quantity_remove;
-                        } else {
-                            $first_quantity = $first_new_quantity;
-                            $dados['entradas'][$key]['primeMeatKg'] = $first_new_quantity;
-                            $dados['entradas'][$key_remover]['primeMeatKg'] = 0;
-                        }
-
-                    }
-                }
-
-            } else if ( $first_quantity < 0 ) {
-
-                foreach( $dados['entradas'] as $key_remover => $entrada_remover ) {
-                    $first_quantity_remove = str_replace(',','.',str_replace('.','',$entrada_remover['primeMeatKg']));
-                    if ( $first_quantity_remove > 0 ) {
-
-                        $first_new_quantity =  $first_quantity_remove + $first_quantity;
-
-                        if ( $first_new_quantity >= 0 ){
-                            $first_quantity = 0;                            
-                            $dados['entradas'][$key_remover]['primeMeatKg'] = $first_new_quantity;
-                            $dados['entradas'][$key]['primeMeatKg'] = 0;
-                        } else {
-                            $first_quantity = $first_quantity + $dados['entradas'][$key_remover]['primeMeatKg'];
-                            $dados['entradas'][$key_remover]['primeMeatKg'] = 0;
-                            $dados['entradas'][$key]['primeMeatKg'] = $first_quantity + $dados['entradas'][$key_remover]['primeMeatKg'];
-                        }
-
-                    }
-                }
-
-                if ( $first_quantity < 0 ) {
-                    return false;
-                }
-
-                
-            }
-
-            if ( $second_quantity > 0 ) {
-
-                // Procura itens negativos para diminuir
-                foreach( $dados['entradas'] as $key_remover => $entrada_remover ) {
-                    $second_quantity_remove = str_replace(',','.',str_replace('.','',$entrada_remover['secondMeatKg']));
-                    if ( $second_quantity_remove < 0 ) {
-
-                        $second_new_quantity = $second_quantity - $second_quantity_remove;
-
-                        if ( $second_new_quantity < 0 ){
-                            $second_quantity = 0;
-                            $dados['entradas'][$key]['secondMeatKg'] = 0;
-                            $dados['entradas'][$key_remover]['secondMeatKg'] = $second_quantity_remove - $second_quantity_remove;
-                        } else {
-                            $second_quantity = $second_new_quantity;
-                            $dados['entradas'][$key]['secondMeatKg'] = $second_new_quantity;
-                            $dados['entradas'][$key_remover]['secondMeatKg'] = 0;
-                        }
-
-                    }
-                }
-
-            } else if ( $second_quantity < 0 ) {
-
-                foreach( $dados['entradas'] as $key_remover => $entrada_remover ) {
-                    $second_quantity_remove = str_replace(',','.',str_replace('.','',$entrada_remover['secondMeatKg']));
-                    if ( $second_quantity_remove > 0 ) {
-
-                        $second_new_quantity =  $second_quantity_remove + $second_quantity;
-
-                        if ( $second_new_quantity >= 0 ){
-                            $second_quantity = 0;                            
-                            $dados['entradas'][$key_remover]['secondMeatKg'] = $second_new_quantity;
-                            $dados['entradas'][$key]['secondMeatKg'] = 0;
-                        } else {
-                            $second_quantity = $second_quantity + $dados['entradas'][$key_remover]['secondMeatKg'];
-                            $dados['entradas'][$key_remover]['secondMeatKg'] = 0;
-                            $dados['entradas'][$key]['secondMeatKg'] = $second_quantity + $dados['entradas'][$key_remover]['secondMeatKg'];
-                        }
-
-                    }
-                }
-
-                if ( $second_quantity < 0 ) {
-                    return false;
-                }
-
-                
-            }
-
-            if ( $bones_and_skin_quantity > 0 ) {
-
-                // Procura itens negativos para diminuir
-                foreach( $dados['entradas'] as $key_remover => $entrada_remover ) {
-                    $bones_and_skin_quantity_remove = str_replace(',','.',str_replace('.','',$entrada_remover['boneAndSkinKg']));
-                    if ( $bones_and_skin_quantity_remove < 0 ) {
-
-                        $bones_and_skin_new_quantity = $bones_and_skin_quantity - $bones_and_skin_quantity_remove;
-
-                        if ( $bones_and_skin_new_quantity < 0 ){
-                            $bones_and_skin_quantity = 0;
-                            $dados['entradas'][$key]['boneAndSkinKg'] = 0;
-                            $dados['entradas'][$key_remover]['boneAndSkinKg'] = $bones_and_skin_quantity_remove - $bones_and_skin_quantity_remove;
-                        } else {
-                            $bones_and_skin_quantity = $bones_and_skin_new_quantity;
-                            $dados['entradas'][$key]['boneAndSkinKg'] = $bones_and_skin_new_quantity;
-                            $dados['entradas'][$key_remover]['boneAndSkinKg'] = 0;
-                        }
-
-                    }
-                }
-
-            } else if ( $bones_and_skin_quantity < 0 ) {
-
-                foreach( $dados['entradas'] as $key_remover => $entrada_remover ) {
-                    $bones_and_skin_quantity_remove = str_replace(',','.',str_replace('.','',$entrada_remover['boneAndSkinKg']));
-                    if ( $bones_and_skin_quantity_remove > 0 ) {
-
-                        $bones_and_skin_new_quantity =  $bones_and_skin_quantity_remove + $bones_and_skin_quantity;
-
-                        if ( $bones_and_skin_new_quantity >= 0 ){
-                            $bones_and_skin_quantity = 0;                            
-                            $dados['entradas'][$key_remover]['boneAndSkinKg'] = $bones_and_skin_new_quantity;
-                            $dados['entradas'][$key]['boneAndSkinKg'] = 0;
-                        } else {
-                            $bones_and_skin_quantity = $bones_and_skin_quantity + $dados['entradas'][$key_remover]['boneAndSkinKg'];
-                            $dados['entradas'][$key_remover]['boneAndSkinKg'] = 0;
-                            $dados['entradas'][$key]['boneAndSkinKg'] = $bones_and_skin_quantity + $dados['entradas'][$key_remover]['boneAndSkinKg'];
-                        }
-
-                    }
-                }
-
-                if ( $bones_and_skin_quantity < 0 ) {
-                    return false;
-                    /*return $this->jsonResponse('erro', 'Você inseriu um valor negativo em osso e pelanca muito grande.');
-                    debug($bones_and_skin_quantity);
-                    debug('trews');
-                    die(0);*/
-                }
-
-                
-            }
-
-            $dados_entradas_salvar[] = $dados['entradas'][$key];
-            
-        }
-
-        foreach( $dados_entradas_salvar as $key => $entrada) {
-
-            $first_quantity = str_replace(',','.',str_replace('.','',$entrada['primeMeatKg']));
-            $second_quantity = str_replace(',','.',str_replace('.','',$entrada['secondMeatKg']));
-            $bones_and_skin_quantity = str_replace(',','.',str_replace('.','',$entrada['boneAndSkinKg']));
-
-            $entities[] = $this->Dma->newEntity([
-                'store_code' => $store_code,
-                'user' => $dados['user'],
-                'date_movement' => date('Y-m-d'),
-                'date_accounting' => $date_accounting,
-                'type' => 'Entrada',
-                'cutout_type' => "Primeira",
-                'good_code' => str_pad($first_good_data['cutout_code'], 7, "0", STR_PAD_LEFT),
-                'quantity' => $first_quantity,
-                'ended' => $ended
-            ]);
-    
-            $entities[] = $this->Dma->newEntity([
-                'store_code' => $store_code,
-                'user' => $dados['user'],
-                'date_movement' => date('Y-m-d'),
-                'date_accounting' => $date_accounting,
-                'type' => 'Entrada',
-                'cutout_type' => "Segunda",
-                'good_code' => str_pad($second_good_data['cutout_code'], 7, "0", STR_PAD_LEFT),
-                'quantity' => $second_quantity,
-                'ended' => $ended
-            ]);
-    
-            $entities[] = $this->Dma->newEntity([
-                'store_code' => $store_code,
-                'user' => $dados['user'],
-                'date_movement' => date('Y-m-d'),
-                'date_accounting' => $date_accounting,
-                'type' => 'Entrada',
-                'cutout_type' => "Osso e Pelanca",
-                'good_code' => str_pad($bones_and_skin_data['cutout_code'], 7, "0", STR_PAD_LEFT),
-                'quantity' => $bones_and_skin_quantity,
-                'ended' => $ended
-            ]);            
-
-        }
-    
-        return $entities;
     }
     
     private function extractErrors($entities)

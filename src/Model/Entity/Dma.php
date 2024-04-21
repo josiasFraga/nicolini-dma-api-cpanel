@@ -43,6 +43,7 @@ class Dma extends Entity
         'cutout_type' => true,
         'good_code' => true,
         'quantity' => true,
-        'coust' => true,
+        'cost' => true,
+        'ended' => true,
     ];
 }
