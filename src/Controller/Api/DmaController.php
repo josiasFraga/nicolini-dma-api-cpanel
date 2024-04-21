@@ -20,7 +20,7 @@ class DmaController extends AppController
     }
 
     protected function getUnauthenticatedActions() {
-        return ['finish', 'nextDate', 'saveIncome', 'saveOutcome', 'loadOutcomes', 'loadIncomes'];
+        return ['finish', 'nextDate', 'saveIncome', 'saveOutcome', 'loadOutcomes', 'loadIncomes', 'autoFinish'];
     }
 
     public function finish()
@@ -30,10 +30,8 @@ class DmaController extends AppController
         $dados = json_decode($this->request->getData('dados'), true);
         //Log::debug($this->request->getData('dados'));
 
-        
-        $this->loadModel('Dma');    
+        $this->loadModel('Dma');
         $this->loadModel('Users');
-        $this->loadModel('Mercadorias');
 
         $store_code = $dados['store_code'];
 
@@ -82,166 +80,8 @@ class DmaController extends AppController
             return $this->jsonResponse('erro', 'Não é possível salvar lançamentos para depois de amanhã.');
         }
         
-        $custo_saidas_total = 0;
-        $peso_saidas_total = 0;
-
-        foreach( $saidas as $key => $saida ){
-
-            $good_code = $saida['good_code'];
-            $quantity = $saida['quantity'];
-   
-            $dados_mercadoria = $this->Mercadorias->find('all')
-            ->where([
-                'Mercadorias.cd_codigoint' => str_pad($good_code, 7, "0", STR_PAD_LEFT)
-            ])
-            ->first();
-
-            if ( !$dados_mercadoria ) {
-                return $this->jsonResponse('erro', 'Dados da mercadoria '.$good_code.' não encontrados!');
-            }
-
-            $dados_mercadoria = $dados_mercadoria->toArray();
-
-            $custo_total = 0;
-            if ( $dados_mercadoria['opcusto'] == "M" ) {
-                $custo_total = $saida['quantity'] * $dados_mercadoria['customed'];
-            } else {
-                $custo_total = $saida['quantity'] * $dados_mercadoria['custotab'];
-            }
-
-            $custo_saidas_total += $custo_total;
-            $peso_saidas_total += $saida['quantity'];
-        }
-
-        $custo_saidas_medio = $custo_saidas_total/$peso_saidas_total;
-        $peso_entradas_total = 0;
-        $custo_entradas_total = 0;
-
-        // Calcula os totais
-        foreach( $entradas as $key => $entrada ){
-
-            $good_code = $saida['good_code'];
-            $quantity = $saida['quantity'];
-   
-            $dados_mercadoria = $this->Mercadorias->find('all')
-            ->where([
-                'Mercadorias.cd_codigoint' => str_pad($good_code, 7, "0", STR_PAD_LEFT)
-            ])
-            ->first();
-
-            if ( !$dados_mercadoria ) {
-                return $this->jsonResponse('erro', 'Dados da mercadoria '.$good_code.' não encontrados!');
-            }
-
-            $dados_mercadoria = $dados_mercadoria->toArray();
-
-            $entradas[$key]['good'] = $dados_mercadoria;
-
-            $custo_total = 0;
-            if ( $dados_mercadoria['opcusto'] == "M" ) {
-                $custo_total = $entrada['quantity'] * $dados_mercadoria['customed'];
-            } else {
-                $custo_total = $entrada['quantity'] * $dados_mercadoria['custotab'];
-            }
-
-            $custo_entradas_total += $custo_total;
-            $peso_entradas_total += $entrada['quantity'];
-        }
-
-        $calculos_entradas = [];
-
-        // Calcula a representatividade
-        foreach( $entradas as $key => $entrada ){
-
-            $good_code = $saida['good_code'];
-            $quantity = $saida['quantity'];
-   
-            $custo_total = 0;
-   
-            if ( $entrada['good']['opcusto'] == "M" ) {
-                $custo_total = $entrada['quantity'] * $dados_mercadoria['customed'];
-            } else {
-                $custo_total = $entrada['quantity'] * $dados_mercadoria['custotab'];
-            }
-
-            if ( $entrada['cutout_type'] == 'Osso a Descarte' ) {
-                $calculos_entradas[$entrada['cutout_type']]['representatividade'] = (100*1)/$peso_entradas_total;
-                $calculos_entradas[$entrada['cutout_type']]['kg'] = 1;
-            } else if ( $entrada['cutout_type'] == 'Osso e Pelanca' ) {
-                $calculos_entradas[$entrada['cutout_type']]['representatividade'] = (100*$entrada['quantity'])/$peso_entradas_total;
-                $calculos_entradas[$entrada['cutout_type']]['kg'] = $entrada['quantity'];                
-            }else {
-                $calculos_entradas[$entrada['cutout_type']]['representatividade'] = (100*$entrada['quantity'])/$peso_entradas_total;
-                $calculos_entradas[$entrada['cutout_type']]['kg'] = $entrada['quantity'];
-            }
-
-        }
-
-        $total_saidas_prev = 0;
-        foreach( $calculos_entradas as $key => $calculo ){
-            if ( $key == 'Osso a Descarte' ) {
-                $calculos_entradas[$key]['custo_total_prev'] = $custo_saidas_medio;
-            } else if( $key == 'Osso e Pelanca' ) {
-                $calculos_entradas[$key]['custo_total_prev'] = $calculos_entradas[$key]['kg'];
-            } else {
-                $calculos_entradas[$key]['custo_total_prev'] = $custo_saidas_total*($calculo['representatividade']/100);
-            }
-
-            $total_saidas_prev += $calculos_entradas[$key]['custo_total_prev'];
-        }
-
-        $dif_total_saidas_x_total_entradas_prev = $custo_saidas_total-$total_saidas_prev;
-        $trinta_porcento_diferenca = $dif_total_saidas_x_total_entradas_prev*0.3;
-        $setenta_porcento_diferenca = $dif_total_saidas_x_total_entradas_prev*0.7;
+        return $this->finishDma($entradas, $saidas, 'N');
         
-        foreach( $calculos_entradas as $key => $calculo ){
-            if ( $key === 'Primeira' ) {
-                $calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'] + $trinta_porcento_diferenca;
-                $calculos_entradas[$key]['custo_medio'] = $calculos_entradas[$key]['custo_total']/$calculos_entradas[$key]['kg'];
-            }
-            else if ( $key === 'Segunda' ) {
-                $calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'] + $setenta_porcento_diferenca;
-                $calculos_entradas[$key]['custo_medio'] = $calculos_entradas[$key]['custo_total']/$calculos_entradas[$key]['kg'];
-            } 
-            else if ( $key === 'Osso e Pelanca' ) {
-                $calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'] + $setenta_porcento_diferenca;
-                $calculos_entradas[$key]['custo_medio'] = 1;
-            } 
-            else {
-                $calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'];
-                $calculos_entradas[$key]['custo_medio'] = $calculos_entradas[$key]['custo_total_prev'];
-            }
-   
-        }
-
-        $novas_entradas = [];
-        foreach( $entradas as $key => $entrada ){
-
-            $novas_entradas[] = [
-                'id' => $entrada['id'],
-                'cost' => $calculos_entradas[$entrada['cutout_type']]['custo_medio'],
-                'ended' => 'Y'
-            ];
-        }
-
-        $novas_saidas = [];
-        foreach( $saidas as $key => $saida ){
-
-            $novas_saidas[] = [
-                'id' => $saida['id'],
-                'ended' => 'Y'
-            ];
-        }
-
-        $dmaEntities = $this->Dma->patchEntities(array_merge($entradas, $saidas), array_merge($novas_entradas, $novas_saidas));
-    
-        if ($this->Dma->saveMany($dmaEntities)) {
-            return $this->jsonResponse('ok', 'DMA finalizado com sucesso!');
-        } else {
-
-            $errors = $dmaEntities->getErros();
-            return $this->jsonResponse('erro', 'Ocorreu um erro ao finalizar o DMA.', $errors);
-        }
     }
 
     public function nextDate()
@@ -642,5 +482,232 @@ class DmaController extends AppController
 
 
         return $this->jsonResponse('ok', '', [], $saidas_retornar);
+    }
+
+    public function autoFinish() {
+        
+        $token = $this->request->getQuery('token');
+
+        if ( $token != "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMSIsIm5hbWUiOiJKb2huIERvZSIsImlhdCI6MTUxNjIzOTAyMn0.ZjR16uQfmIXOzQdXNl5_eQShjOU2vAyL9apQmIR-4hM" ) {
+            return $this->jsonResponse('erro', 'Requisição inválida!');
+        }
+
+        $this->loadModel('Dma');
+
+        $dmas_nao_finalizados = $this->Dma->find('all')
+        ->where([
+            'Dma.ended' => 'N',
+            'Dma.date_accounting' => date('Y-m-d')
+        ])
+        ->group([
+            'Dma.store_code'
+        ])->toArray();
+
+        if ( count($dmas_nao_finalizados) > 0 ) {
+
+            foreach ($dmas_nao_finalizados as $dma ) {
+
+                $entradas = $this->Dma->find('all')
+                ->where([
+                    'Dma.ended' => 'N',
+                    'Dma.type' => 'Entrada',
+                    'Dma.store_code' => $dma['store_code']
+                ])
+                ->toArray();
+
+                $saidas = $this->Dma->find('all')
+                ->where([
+                    'Dma.ended' => 'N',
+                    'Dma.type' => 'Saida',
+                    'Dma.store_code' => $dma['store_code']
+                ])
+                ->toArray();
+        
+                if ( count($saidas) == 0 ) {
+                    return $this->jsonResponse('erro', 'Nenhuma saída informada.');
+                }
+            
+                if ( count($entradas) == 0 ) {
+                    return $this->jsonResponse('erro', 'Nenhuma entrada informada.');
+                }
+
+                finishDma($entradas, $saidas, 'Y');
+
+            }
+
+        }
+        
+
+        return $this->jsonResponse('ok', 'DMAs finalizados com sucesso!');
+
+    }
+
+    private function finishDma ($entradas, $saidas, $ended_by_cron) {
+    
+        $this->loadModel('Mercadorias');
+        $this->loadModel('Dma');
+    
+        $custo_saidas_total = 0;
+        $peso_saidas_total = 0;
+
+        foreach( $saidas as $key => $saida ){
+
+            $good_code = $saida['good_code'];
+            $quantity = $saida['quantity'];
+   
+            $dados_mercadoria = $this->Mercadorias->find('all')
+            ->where([
+                'Mercadorias.cd_codigoint' => str_pad($good_code, 7, "0", STR_PAD_LEFT)
+            ])
+            ->first();
+
+            if ( !$dados_mercadoria ) {
+                return $this->jsonResponse('erro', 'Dados da mercadoria '.$good_code.' não encontrados!');
+            }
+
+            $dados_mercadoria = $dados_mercadoria->toArray();
+
+            $custo_total = 0;
+            if ( $dados_mercadoria['opcusto'] == "M" ) {
+                $custo_total = $saida['quantity'] * $dados_mercadoria['customed'];
+            } else {
+                $custo_total = $saida['quantity'] * $dados_mercadoria['custotab'];
+            }
+
+            $custo_saidas_total += $custo_total;
+            $peso_saidas_total += $saida['quantity'];
+        }
+
+        $custo_saidas_medio = $custo_saidas_total/$peso_saidas_total;
+        $peso_entradas_total = 0;
+        $custo_entradas_total = 0;
+
+        // Calcula os totais
+        foreach( $entradas as $key => $entrada ){
+
+            $good_code = $saida['good_code'];
+            $quantity = $saida['quantity'];
+   
+            $dados_mercadoria = $this->Mercadorias->find('all')
+            ->where([
+                'Mercadorias.cd_codigoint' => str_pad($good_code, 7, "0", STR_PAD_LEFT)
+            ])
+            ->first();
+
+            if ( !$dados_mercadoria ) {
+                return $this->jsonResponse('erro', 'Dados da mercadoria '.$good_code.' não encontrados!');
+            }
+
+            $dados_mercadoria = $dados_mercadoria->toArray();
+
+            $entradas[$key]['good'] = $dados_mercadoria;
+
+            $custo_total = 0;
+            if ( $dados_mercadoria['opcusto'] == "M" ) {
+                $custo_total = $entrada['quantity'] * $dados_mercadoria['customed'];
+            } else {
+                $custo_total = $entrada['quantity'] * $dados_mercadoria['custotab'];
+            }
+
+            $custo_entradas_total += $custo_total;
+            $peso_entradas_total += $entrada['quantity'];
+        }
+
+        $calculos_entradas = [];
+
+        // Calcula a representatividade
+        foreach( $entradas as $key => $entrada ){
+
+            $good_code = $saida['good_code'];
+            $quantity = $saida['quantity'];
+   
+            $custo_total = 0;
+   
+            if ( $entrada['good']['opcusto'] == "M" ) {
+                $custo_total = $entrada['quantity'] * $dados_mercadoria['customed'];
+            } else {
+                $custo_total = $entrada['quantity'] * $dados_mercadoria['custotab'];
+            }
+
+            if ( $entrada['cutout_type'] == 'Osso a Descarte' ) {
+                $calculos_entradas[$entrada['cutout_type']]['representatividade'] = (100*1)/$peso_entradas_total;
+                $calculos_entradas[$entrada['cutout_type']]['kg'] = 1;
+            } else if ( $entrada['cutout_type'] == 'Osso e Pelanca' ) {
+                $calculos_entradas[$entrada['cutout_type']]['representatividade'] = (100*$entrada['quantity'])/$peso_entradas_total;
+                $calculos_entradas[$entrada['cutout_type']]['kg'] = $entrada['quantity'];                
+            }else {
+                $calculos_entradas[$entrada['cutout_type']]['representatividade'] = (100*$entrada['quantity'])/$peso_entradas_total;
+                $calculos_entradas[$entrada['cutout_type']]['kg'] = $entrada['quantity'];
+            }
+
+        }
+
+        $total_saidas_prev = 0;
+        foreach( $calculos_entradas as $key => $calculo ){
+            if ( $key == 'Osso a Descarte' ) {
+                $calculos_entradas[$key]['custo_total_prev'] = $custo_saidas_medio;
+            } else if( $key == 'Osso e Pelanca' ) {
+                $calculos_entradas[$key]['custo_total_prev'] = $calculos_entradas[$key]['kg'];
+            } else {
+                $calculos_entradas[$key]['custo_total_prev'] = $custo_saidas_total*($calculo['representatividade']/100);
+            }
+
+            $total_saidas_prev += $calculos_entradas[$key]['custo_total_prev'];
+        }
+
+        $dif_total_saidas_x_total_entradas_prev = $custo_saidas_total-$total_saidas_prev;
+        $trinta_porcento_diferenca = $dif_total_saidas_x_total_entradas_prev*0.3;
+        $setenta_porcento_diferenca = $dif_total_saidas_x_total_entradas_prev*0.7;
+        
+        foreach( $calculos_entradas as $key => $calculo ){
+            if ( $key === 'Primeira' ) {
+                $calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'] + $trinta_porcento_diferenca;
+                $calculos_entradas[$key]['custo_medio'] = $calculos_entradas[$key]['custo_total']/$calculos_entradas[$key]['kg'];
+            }
+            else if ( $key === 'Segunda' ) {
+                $calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'] + $setenta_porcento_diferenca;
+                $calculos_entradas[$key]['custo_medio'] = $calculos_entradas[$key]['custo_total']/$calculos_entradas[$key]['kg'];
+            } 
+            else if ( $key === 'Osso e Pelanca' ) {
+                $calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'] + $setenta_porcento_diferenca;
+                $calculos_entradas[$key]['custo_medio'] = 1;
+            } 
+            else {
+                $calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'];
+                $calculos_entradas[$key]['custo_medio'] = $calculos_entradas[$key]['custo_total_prev'];
+            }
+   
+        }
+
+        $novas_entradas = [];
+        foreach( $entradas as $key => $entrada ){
+
+            $novas_entradas[] = [
+                'id' => $entrada['id'],
+                'cost' => $calculos_entradas[$entrada['cutout_type']]['custo_medio'],
+                'ended' => 'Y',
+                'ended_by_cron' => $ended_by_cron
+            ];
+        }
+
+        $novas_saidas = [];
+        foreach( $saidas as $key => $saida ){
+
+            $novas_saidas[] = [
+                'id' => $saida['id'],
+                'ended' => 'Y',
+                'ended_by_cron' => $ended_by_cron
+            ];
+        }
+
+        $dmaEntities = $this->Dma->patchEntities(array_merge($entradas, $saidas), array_merge($novas_entradas, $novas_saidas));
+    
+        if ($this->Dma->saveMany($dmaEntities)) {
+            return $this->jsonResponse('ok', 'DMA finalizado com sucesso!');
+        } else {
+
+            $errors = $dmaEntities->getErros();
+            return $this->jsonResponse('erro', 'Ocorreu um erro ao finalizar o DMA.', $errors);
+        }
     }
 }

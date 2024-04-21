@@ -130,6 +130,12 @@ return static function (RouteBuilder $routes) {
             'action' => 'finish'
         ])->setMethods(['POST']);
 
+        $builder->connect('/dma/auto-finish', [
+            'controller' => 'Dma',
+            'action' => 'autoFinish',            
+            'pass' => ['token']
+        ])->setMethods(['GET']);
+
         $builder->connect('/dma/save-income', [
             'controller' => 'Dma',
             'action' => 'saveIncome'
