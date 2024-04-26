@@ -28,7 +28,6 @@ class DmaController extends AppController
         $jwtPayload = $this->request->getAttribute('jwtPayload');
         $userId = $jwtPayload->sub;
         $dados = json_decode($this->request->getData('dados'), true);
-        //Log::debug($this->request->getData('dados'));
 
         $this->loadModel('Dma');
         $this->loadModel('Users');
@@ -581,7 +580,7 @@ class DmaController extends AppController
         $custo_saidas_medio = $custo_saidas_total/$peso_saidas_total;
         $peso_entradas_total = 0;
         $custo_entradas_total = 0;
-
+    
         // Calcula os totais
         foreach( $entradas as $key => $entrada ){
 
@@ -612,6 +611,7 @@ class DmaController extends AppController
             $custo_entradas_total += $custo_total;
             $peso_entradas_total += $entrada['quantity'];
         }
+
 
         $calculos_entradas = [];
 
@@ -661,11 +661,11 @@ class DmaController extends AppController
         
         foreach( $calculos_entradas as $key => $calculo ){
             if ( $key === 'Primeira' ) {
-                $calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'] + $trinta_porcento_diferenca;
+                $calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'] + $setenta_porcento_diferenca;
                 $calculos_entradas[$key]['custo_medio'] = $calculos_entradas[$key]['custo_total']/$calculos_entradas[$key]['kg'];
             }
             else if ( $key === 'Segunda' ) {
-                $calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'] + $setenta_porcento_diferenca;
+                $calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'] + $trinta_porcento_diferenca;
                 $calculos_entradas[$key]['custo_medio'] = $calculos_entradas[$key]['custo_total']/$calculos_entradas[$key]['kg'];
             } 
             else if ( $key === 'Osso e Pelanca' ) {
