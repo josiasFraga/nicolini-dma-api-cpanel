@@ -3,6 +3,9 @@ $storeCodes = [];
 for ($i = 1; $i <= 18; $i++) {
     $storeCodes[sprintf('%03d', $i)] = sprintf('%03d', $i);
 }
+
+$storeCodes = ['all' => 'Selecionar Todas'] + $storeCodes;
+
 ?>
 <!-- Main content -->
 <section class="content">

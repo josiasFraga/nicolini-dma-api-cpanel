@@ -46,6 +46,7 @@ class MercadoriasController extends AppController
             'custotab',
             'opcusto'
         ])
+        ->group('cd_codigoint')
         ->limit(30000)
         ->toArray();
 

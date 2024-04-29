@@ -2,6 +2,15 @@
 
 use Cake\Core\Configure; ?>
 
+<?php
+$storeCodes = [];
+for ($i = 1; $i <= 18; $i++) {
+    $storeCodes[sprintf('%03d', $i)] = sprintf('%03d', $i);
+}
+
+$storeCodes = ['all' => 'Selecionar Todas'] + $storeCodes;
+?>
+
 <!DOCTYPE html>
 <html>
 
@@ -195,6 +204,16 @@ $(document).ready(function() {
     $('.select2').select2({
         placeholder: "Selecione uma opção", // Você pode customizar isso conforme necessário
         allowClear: true // Permite limpar a seleção
+    });
+
+    $('.select2').on('change', function() {
+        var allSelected = $(this).find('option[value="all"]').is(':selected');
+
+        if (allSelected) {
+          $(".select2 > option").prop("selected", true);
+          $(".select2").trigger("change");
+
+        }
     });
 });
 </script>
