@@ -127,8 +127,15 @@ class ResultsController extends AppController
                     ->where([
                         'ExpectedYield.good_code' => floatVal($dma['good_code'])
                     ])
-                    ->first()
-                    ->toArray();
+                    ->first();
+
+                    if ( $espectativa ) {                        
+                        $espectativa = $espectativa->toArray();
+                    } else {                        
+
+                        echo "Produto " . floatVal($dma['good_code']) . " sem expectativa cadastrada pra loja " . $storeCode;
+                        die();
+                    }
 
                     $espectativa_primeira_porc = $espectativa['prime'] ? $espectativa['prime']/100 : 0;
                     $espectativa_segunda_porc = $espectativa['second'] ? $espectativa['second']/100 : 0;
