@@ -1,4 +1,6 @@
-
+<?php
+$this->assign('title', 'Códigos de recorte');
+?>
 
 <!-- Main content -->
 <section class="content">
@@ -35,6 +37,8 @@
                   <th scope="col" class="text-center"><?= $this->Paginator->sort('modified') ?></th>
                   <th scope="col" class="text-center"><?= $this->Paginator->sort('store_code') ?></th>
                   <th scope="col" class="text-center"><?= $this->Paginator->sort('cutout_code') ?></th>
+                  <th scope="col" class="text-center">% AD CM</th>
+                  <th scope="col" class="text-center">Atribui CM R$</th>
                   <th scope="col"><?= $this->Paginator->sort('cutout_type') ?></th>
                   <th scope="col" class="actions text-center"><?= __('Actions') ?></th>
               </tr>
@@ -47,6 +51,8 @@
                   <td class="text-center"><?= h($storeCutoutCode->modified) ?></td>
                   <td class="text-center"><?= h($storeCutoutCode->store_code) ?></td>
                   <td class="text-center"><?= h($storeCutoutCode->cutout_code) ?></td>
+                  <td class="text-center"><?= $storeCutoutCode->percent_ad_cm ?></td>
+                  <td class="text-center"><?= $storeCutoutCode->atribui_cm_rs ?></td>
                   <td><?= h($storeCutoutCode->cutout_type) ?></td>
                   <td class="actions text-center">
                       <?= $this->Html->link(__('Edit'), ['action' => 'edit', $storeCutoutCode->id], ['class'=>'btn btn-warning btn-xs']) ?>

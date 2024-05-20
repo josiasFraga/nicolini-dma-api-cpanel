@@ -32,6 +32,12 @@
       </a>
     </li>
 
+    <li class="nav-item <?php echo $this->getRequest()->getParam('controller') === 'DmaConfigurations' ? 'menu-open' : ''; ?>">
+      <a href="<?php echo $this->Url->build('/admin/dma-configurations'); ?>" class="nav-link">
+        <p>Configurações</p>
+      </a>
+    </li>
+
     <!-- Outros itens do menu aqui -->
 
   </ul>

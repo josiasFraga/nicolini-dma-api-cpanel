@@ -32,5 +32,7 @@ class StoreCutoutCode extends Entity
         'store_code' => true,
         'cutout_code' => true,
         'cutout_type' => true,
+        'percent_ad_cm' => true,
+        'atribui_cm_rs' => true,
     ];
 }

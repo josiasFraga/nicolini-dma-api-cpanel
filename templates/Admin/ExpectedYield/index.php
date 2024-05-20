@@ -1,4 +1,6 @@
-
+<?php
+$this->assign('title', 'Expectativas de Rendimento');
+?>
 
 <!-- Main content -->
 <section class="content">

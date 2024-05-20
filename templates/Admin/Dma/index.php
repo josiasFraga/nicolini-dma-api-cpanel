@@ -1,4 +1,6 @@
-
+<?php
+$this->assign('title', 'DMA');
+?>
 
 <!-- Main content -->
 <section class="content">
@@ -35,6 +37,7 @@
                   <th scope="col"><?= $this->Paginator->sort('cutout_type') ?></th>
                   <th scope="col" class="text-center"><?= $this->Paginator->sort('good_code') ?></th>
                   <th scope="col" class="text-center"><?= $this->Paginator->sort('quantity') ?></th>
+                  <th scope="col" class="text-center"><?= $this->Paginator->sort('cost') ?></th>
                   <th scope="col" class="actions text-center"><?= __('Actions') ?></th>
               </tr>
             </thead>
@@ -51,6 +54,7 @@
                   <td><?= h($dma->cutout_type) ?></td>
                   <td class="text-center"><?= h($dma->good_code) ?></td>
                   <td class="text-center"><?= $this->Number->format($dma->quantity) ?></td>
+                  <td class="text-center">R$ <?= number_format($dma->cost, 2, ',', '.') ?></td>
                   <td class="actions text-center">
                       <?= $this->Form->postLink(__('Delete'), ['action' => 'delete', $dma->id], ['confirm' => __('Are you sure you want to delete # {0}?', $dma->id), 'class'=>'btn btn-danger btn-xs']) ?>
                   </td>

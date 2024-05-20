@@ -1,5 +1,8 @@
 
 
+<?php
+$this->assign('title', 'Visualizar expectativa de rendimento');
+?>
 <!-- Main content -->
 <section class="content">
   <div class="row">

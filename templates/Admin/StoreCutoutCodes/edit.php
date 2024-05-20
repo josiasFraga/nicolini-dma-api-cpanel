@@ -1,4 +1,7 @@
 <?php
+$this->assign('title', 'Alterar código de recorte');
+?>
+<?php
 /**
  * @var \App\View\AppView $this
  * @var \App\Model\Entity\StoreCutoutCode $storeCutoutCode
@@ -46,6 +49,8 @@
                     'options' => $cutoutTypes,
                     'label' => 'Tipo de Corte',
                 ]);
+                echo $this->Form->control('percent_ad_cm', ['label' => '% AD CM']);
+                echo $this->Form->control('atribui_cm_rs', ['label' => 'Atribui CM R$']);
               ?>
             </div>
             <!-- /.card-body -->

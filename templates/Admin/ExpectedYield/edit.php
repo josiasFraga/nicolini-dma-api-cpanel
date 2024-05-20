@@ -1,4 +1,7 @@
 <?php
+$this->assign('title', 'Alterar expectativa de rendimento');
+?>
+<?php
 /**
  * @var \App\View\AppView $this
  * @var \App\Model\Entity\ExpectedYield $expectedYield

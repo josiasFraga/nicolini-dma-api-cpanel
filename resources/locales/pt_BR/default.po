@@ -159,3 +159,6 @@ msgstr "QTD"
 
 msgid "Main"
 msgstr "Principal"
+
+msgid "Cost"
+msgstr "Custo"

@@ -1,4 +1,6 @@
-
+<?php
+$this->assign('title', 'DMA');
+?>
 
 <!-- Main content -->
 <section class="content">
