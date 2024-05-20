@@ -25,15 +25,36 @@ class MercadoriasController extends AppController
 
     public function index()
     {
+        $this->Authorization->skipAuthorization();
+
+        $store_code = $this->request->getQuery('store_code');
+
+        if ( !$store_code ) {
+
+            $this->set([
+                'status' => 'erro',
+                'message' => 'Código da loja não informado!'
+            ]);
+
+        }
         
         $status = 'ok';
 
-        $mains = [222,208,203];
+        $this->loadModel('ExpectedYield');
+
+        $mains = $this->ExpectedYield->find('list', [
+            'keyField' => 'id',
+            'valueField' => 'good_code'
+        ])
+        ->where(['main' => 'Y'])
+        ->toArray();
 
         $mercadorias = $this->Mercadorias->find('all')
         ->where([
             'Mercadorias.secao' => 17,
-            'Mercadorias.grupo IN' => [258,259,261]
+            'Mercadorias.grupo IN' => [258,259,261],
+            'MercadoriasLojas.loja' => $store_code,
+            'geraconsumo' => '0'
         ])
         ->select([
             'cd_codigoean',
@@ -47,7 +68,23 @@ class MercadoriasController extends AppController
             'opcusto'
         ])
         ->group('cd_codigoint')
-        ->limit(30000)
+        ->leftJoin(
+            ['MercadoriasLojas' => 'wms_mercadorias_lojas'],
+            ['Mercadorias.cd_codigoint = MercadoriasLojas.codigoint']
+        )
+        ->andWhere([
+            'OR' => [
+                'MercadoriasLojas.ltmix' => 'A',
+                'AND' => [
+                    'OR' => [
+                        'MercadoriasLojas.ltmix' => 'R',
+                        'MercadoriasLojas.ltmix' => 'S'
+                    ],
+                    'MercadoriasLojas.estatual >' => 0
+                ]
+            ]
+        ])
+        ->limit(1000)
         ->toArray();
 
         foreach( $mercadorias as $key => $mercadoria ){

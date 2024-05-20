@@ -27,21 +27,30 @@ class UsersController extends AppController
         $userStoreTable = TableRegistry::getTableLocator()->get('ApoUsuarioloja');
         $usersTable = TableRegistry::getTableLocator()->get('Users');
         $dados = json_decode($this->request->getData('dados'), true);
+
+        $conditions = [
+            'login' => $dados["user"]
+        ];
    
         $user = $usersTable->find()
-            ->where([
-                'login' => $dados["user"]
-            ])
+            ->where($conditions)
             ->first();
 
         $password = md5($dados["password"]);
 
         if ($user && $user->pswd == $password) {
+
+            $conditions_loja = [
+                'Login' => $dados["user"]
+            ];
+
+            if ( isset($dados["store"]) && !empty($dados["store"]) ) {
+                $conditions_loja['Loja'] = $dados["store"];
+            }
    
             $user_store = $userStoreTable->find()
-            ->where([
-                'Login' => $dados["user"]
-            ])->order([
+            ->where($conditions_loja)
+            ->order([
                 'ultatu DESC'
             ])
             ->first();

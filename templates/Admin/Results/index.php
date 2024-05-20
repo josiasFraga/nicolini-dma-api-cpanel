@@ -58,9 +58,9 @@ $storeCodes = ['all' => 'Selecionar Todas'] + $storeCodes;
                     <th colspan="2" class="text-center">SAÍDAS</th>
                     <th colspan="2" class="text-center">ENTRADAS</th>
                     <th colspan="2" class="text-center">DIFERENÇA</th>
-                    <th colspan="3" class="text-center">PRIMEIRA</th>
-                    <th colspan="3" class="text-center">SEGUNDA</th>
-                    <th colspan="3" class="text-center">OSSO E PELANCA</th>
+                    <th colspan="4" class="text-center">PRIMEIRA</th>
+                    <th colspan="4" class="text-center">SEGUNDA</th>
+                    <th colspan="4" class="text-center">OSSO E PELANCA</th>
      
                     <th rowspan="2" class="text-center">Posição Rank</th>
                     <th rowspan="2" class="text-center">Finalizado por</th>
@@ -73,15 +73,18 @@ $storeCodes = ['all' => 'Selecionar Todas'] + $storeCodes;
                     <th class="text-center">R$</th>
                     <th class="text-center">Kg</th>
                     <th class="text-center">R$</th>
-                    
+
+                    <th class="text-center">R$ Custo Médio</th>
                     <th class="text-center">R$ Previstos</th>
                     <th class="text-center">R$ Realizados</th>
                     <th class="text-center">R$ Diferença</th>
-                    
+
+                    <th class="text-center">R$ Custo Médio</th>
                     <th class="text-center">R$ Previstos</th>
                     <th class="text-center">R$ Realizados</th>
                     <th class="text-center">R$ Diferença</th>
-                    
+
+                    <th class="text-center">R$ Custo Médio</th>
                     <th class="text-center">R$ Previstos</th>
                     <th class="text-center">R$ Realizados</th>
                     <th class="text-center">R$ Diferença</th>
@@ -104,14 +107,17 @@ $storeCodes = ['all' => 'Selecionar Todas'] + $storeCodes;
                             <td class="text-center"><?= $dado['diferenca_saidas_entradas_kg'] ?></td>
                             <td class="text-center"><?= number_format($dado['diferenca_saidas_entradas_rs'],2,',','.') ?></td>
 
+                            <td class="text-center"><?= number_format($dado['custo_med_primeira'],2,',','.') ?></td>
                             <td class="text-center"><?= number_format($dado['rendimento_esperado_primeira'],2,',','.') ?></td>
                             <td class="text-center"><?= number_format($dado['rendimento_executado_primeira'],2,',','.') ?></td>
                             <td class="text-center"><?= number_format($dado['rendimento_dif_primeira'],2,',','.') ?></td>
 
+                            <td class="text-center"><?= number_format($dado['custo_med_segunda'],2,',','.') ?></td>
                             <td class="text-center"><?= number_format($dado['rendimento_esperado_segunda'],2,',','.') ?></td>
                             <td class="text-center"><?= number_format($dado['rendimento_executado_segunda'],2,',','.') ?></td>
                             <td class="text-center"><?= number_format($dado['rendimento_dif_segunda'],2,',','.') ?></td>
 
+                            <td class="text-center"><?= number_format($dado['custo_med_osso_pelanca'],2,',','.') ?></td>
                             <td class="text-center"><?= number_format($dado['rendimento_esperado_osso_pelanca'],2,',','.') ?></td>
                             <td class="text-center"><?= number_format($dado['rendimento_executado_osso_pelanca'],2,',','.') ?></td>
                             <td class="text-center"><?= number_format($dado['rendimento_dif_osso_pelanca'],2,',','.') ?></td>

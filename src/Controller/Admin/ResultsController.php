@@ -85,6 +85,9 @@ class ResultsController extends AppController
                         'rendimento_dif_primeira' => 0,
                         'rendimento_dif_segunda' => 0,
                         'rendimento_dif_osso_pelanca' => 0,
+                        'custo_med_primeira' => 0,
+                        'custo_med_segunda' => 0,
+                        'custo_med_osso_pelanca' => 0,
                         'encerramento' => '2000-01-01',
                         'base_calc_rank' => 0,
                         'posicao_rank' => 1,
@@ -99,6 +102,7 @@ class ResultsController extends AppController
 
                 $tipo_dma = $dma['type'];
                 $dma_qtd = $dma['quantity'];
+                $dma_cost = $dma['cost'];
 
                 if ( $dma['ended'] === 'N' ) {
                     $dadosRelatorio[$storeCode]['finalizado_por'] = 'em andamento';
@@ -133,8 +137,9 @@ class ResultsController extends AppController
                         $espectativa = $espectativa->toArray();
                     } else {                        
 
-                        echo "Produto " . floatVal($dma['good_code']) . " sem expectativa cadastrada pra loja " . $storeCode;
-                        die();
+                        $espectativa['prime'] = 0;
+                        $espectativa['second'] = 0;
+                        $espectativa['bones_skin'] = 0;
                     }
 
                     $espectativa_primeira_porc = $espectativa['prime'] ? $espectativa['prime']/100 : 0;
@@ -166,39 +171,50 @@ class ResultsController extends AppController
 
                     $cutCode = str_pad($cutCode, 7, "0", STR_PAD_LEFT);
 
-                    // Busca os dados do produto que corresponde ao código do produto de primeira | segunda | osso e pelanca da loja correspondente
-                    $dados_mercadoria = $this->Mercadorias->find()
-                    ->select([
-                        'tx_descricao',
-                        'customed',
-                        'custotab',
-                        'opcusto'
-                    ])
-                    ->where([
-                        'Mercadorias.cd_codigoint' => $cutCode
-                    ])->first()
-                    ->toArray();
-
-                    $valor_mercadoria = 0;
-
-                    if ( $dados_mercadoria['opcusto'] == "M" ) {
-                        $valor_mercadoria = $dados_mercadoria['customed'];
+                    // Pega o custo do cálculo, senão pega o custo do produto na tabela de marcadorias
+                    if ( $dma['ended'] === 'Y' ) {
+                        $valor_mercadoria = $dma_cost;
                     } else {
-                        $valor_mercadoria = $dados_mercadoria['custotab'];
+
+                        // Busca os dados do produto que corresponde ao código do produto de primeira | segunda | osso e pelanca da loja correspondente
+                        $dados_mercadoria = $this->Mercadorias->find()
+                        ->select([
+                            'tx_descricao',
+                            'customed',
+                            'custotab',
+                            'opcusto'
+                        ])
+                        ->where([
+                            'Mercadorias.cd_codigoint' => $cutCode
+                        ])->first()
+                        ->toArray();
+    
+                        $valor_mercadoria = 0;
+    
+                        if ( $dados_mercadoria['opcusto'] == "M" ) {
+                            $valor_mercadoria = $dados_mercadoria['customed'];
+                        } else {
+                            $valor_mercadoria = $dados_mercadoria['custotab'];
+                        }
+
                     }
+
 
                     $dadosRelatorio[$storeCode]['total_entradas_rs'] += $dma_qtd * $valor_mercadoria;
 
                     if ( $cutout_type == "Primeira" ) {
                         $dadosRelatorio[$storeCode]['rendimento_executado_primeira'] += $dma_qtd * $valor_mercadoria;
+                        $dadosRelatorio[$storeCode]['custo_med_primeira'] =  $valor_mercadoria;
                     }
 
                     else if ( $cutout_type == "Segunda" ) {
                         $dadosRelatorio[$storeCode]['rendimento_executado_segunda'] += $dma_qtd * $valor_mercadoria;
+                        $dadosRelatorio[$storeCode]['custo_med_segunda'] =  $valor_mercadoria;
                     }
 
                     else if ( $cutout_type == "Osso e Pelanca" ) {
                         $dadosRelatorio[$storeCode]['rendimento_executado_osso_pelanca'] += $dma_qtd * $valor_mercadoria;
+                        $dadosRelatorio[$storeCode]['custo_med_osso_pelanca'] =  $valor_mercadoria;
                     }
           
                 }

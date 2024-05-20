@@ -3,20 +3,20 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Model\Table;
 
-use App\Model\Table\WmsMercadoriasTable;
+use App\Model\Table\MercadoriasLojasTable;
 use Cake\TestSuite\TestCase;
 
 /**
- * App\Model\Table\WmsMercadoriasTable Test Case
+ * App\Model\Table\MercadoriasLojasTable Test Case
  */
-class WmsMercadoriasTableTest extends TestCase
+class MercadoriasLojasTableTest extends TestCase
 {
     /**
      * Test subject
      *
-     * @var \App\Model\Table\WmsMercadoriasTable
+     * @var \App\Model\Table\MercadoriasLojasTable
      */
-    protected $WmsMercadorias;
+    protected $MercadoriasLojas;
 
     /**
      * Fixtures
@@ -24,7 +24,7 @@ class WmsMercadoriasTableTest extends TestCase
      * @var array<string>
      */
     protected $fixtures = [
-        'app.WmsMercadorias',
+        'app.MercadoriasLojas',
     ];
 
     /**
@@ -35,8 +35,8 @@ class WmsMercadoriasTableTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $config = $this->getTableLocator()->exists('WmsMercadorias') ? [] : ['className' => WmsMercadoriasTable::class];
-        $this->WmsMercadorias = $this->getTableLocator()->get('WmsMercadorias', $config);
+        $config = $this->getTableLocator()->exists('MercadoriasLojas') ? [] : ['className' => MercadoriasLojasTable::class];
+        $this->MercadoriasLojas = $this->getTableLocator()->get('MercadoriasLojas', $config);
     }
 
     /**
@@ -46,7 +46,7 @@ class WmsMercadoriasTableTest extends TestCase
      */
     protected function tearDown(): void
     {
-        unset($this->WmsMercadorias);
+        unset($this->MercadoriasLojas);
 
         parent::tearDown();
     }
@@ -55,7 +55,7 @@ class WmsMercadoriasTableTest extends TestCase
      * Test validationDefault method
      *
      * @return void
-     * @uses \App\Model\Table\WmsMercadoriasTable::validationDefault()
+     * @uses \App\Model\Table\MercadoriasLojasTable::validationDefault()
      */
     public function testValidationDefault(): void
     {

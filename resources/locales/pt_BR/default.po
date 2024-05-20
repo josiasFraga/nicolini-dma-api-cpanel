@@ -156,3 +156,6 @@ msgstr "Tipo"
 
 msgid "Quantity"
 msgstr "QTD"
+
+msgid "Main"
+msgstr "Principal"

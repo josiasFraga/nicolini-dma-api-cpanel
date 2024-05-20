@@ -12,20 +12,22 @@
         <!-- /.card-header -->
         <div class="card-body">
           <dl class="dl-horizontal">
+            <dt scope="row"><?= __('Id') ?></dt>
+            <dd><?= $this->Number->format($expectedYield->id) ?></dd>
             <dt scope="row"><?= __('Store Code') ?></dt>
             <dd><?= h($expectedYield->store_code) ?></dd>
             <dt scope="row"><?= __('Good Code') ?></dt>
             <dd><?= h($expectedYield->good_code) ?></dd>
             <dt scope="row"><?= __('Description') ?></dt>
             <dd><?= h($expectedYield->description) ?></dd>
-            <dt scope="row"><?= __('Id') ?></dt>
-            <dd><?= $this->Number->format($expectedYield->id) ?></dd>
             <dt scope="row"><?= __('Prime') ?></dt>
             <dd><?= $this->Number->format($expectedYield->prime) ?></dd>
             <dt scope="row"><?= __('Second') ?></dt>
             <dd><?= $this->Number->format($expectedYield->second) ?></dd>
             <dt scope="row"><?= __('Bones Skin') ?></dt>
             <dd><?= $this->Number->format($expectedYield->bones_skin) ?></dd>
+            <dt scope="row"><?= __('Main') ?></dt>
+            <dd><?= $expectedYield->main == 'Y' ? 'Sim' : 'Não' ?></dd>
           </dl>
         </div>
       </div>

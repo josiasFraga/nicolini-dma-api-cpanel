@@ -6,17 +6,14 @@ namespace App\Model\Entity;
 use Cake\ORM\Entity;
 
 /**
- * ExpectedYield Entity
+ * MercadoriasLoja Entity
  *
- * @property int $id
- * @property int $store_code
- * @property string $good_code
- * @property string $description
- * @property float $prime
- * @property float $second
- * @property float $bones_skin
+ * @property string $loja
+ * @property string $codigoint
+ * @property float|null $estatual
+ * @property string|null $ltmix
  */
-class ExpectedYield extends Entity
+class MercadoriasLoja extends Entity
 {
     /**
      * Fields that can be mass assigned using newEntity() or patchEntity().
@@ -28,12 +25,7 @@ class ExpectedYield extends Entity
      * @var array<string, bool>
      */
     protected $_accessible = [
-        'store_code' => true,
-        'good_code' => true,
-        'description' => true,
-        'prime' => true,
-        'second' => true,
-        'bones_skin' => true,
-        'main' => true,
+        'estatual' => true,
+        'ltmix' => true,
     ];
 }

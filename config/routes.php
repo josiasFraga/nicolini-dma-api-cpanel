@@ -114,6 +114,10 @@ return static function (RouteBuilder $routes) {
             'controller' => 'Mercadorias',
             'action' => 'index'
         ])->setMethods(['GET']);
+        $builder->connect('/lojas/index', [
+            'controller' => 'Lojas',
+            'action' => 'index'
+        ])->setMethods(['GET']);
         
         $builder->connect('/store-cutout-codes/index', [
             'controller' => 'StoreCutoutCodes',

@@ -47,5 +47,6 @@ class Mercadoria extends Entity
         'customed' => true,
         'custotab' => true,
         'opcusto' => true,
+        'geraconsumo' => true
     ];
 }

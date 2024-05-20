@@ -26,6 +26,12 @@ class JwtMiddleware implements MiddlewareInterface
             if (preg_match('/^\/api\/dma\/auto-finish/', $url)) {
                 return $handler->handle($request);
             }
+            if (preg_match('/^\/api\/mercadorias\/index/', $url)) {
+                return $handler->handle($request);
+            }
+            if (preg_match('/^\/api\/lojas\/index/', $url)) {
+                return $handler->handle($request);
+            }
 
             // A lógica JWT é aplicada apenas para rotas com prefixo /api/
             $header = $request->getHeaderLine('Authorization');

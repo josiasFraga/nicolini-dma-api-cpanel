@@ -50,6 +50,14 @@
                     'type' => 'text',
                     'escape' => false
                 ]);
+                echo $this->Form->control('main', [
+                  'type' => 'select',
+                  'options' => [
+                      'Y' => 'Sim',
+                      'N' => 'Não'
+                  ],
+                  'label' => 'Mostrar na Tela Inicial?'  // Se você deseja definir um rótulo
+                ]);
               ?>
             </div>
             <!-- /.card-body -->
