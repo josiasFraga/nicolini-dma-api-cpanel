@@ -32,9 +32,10 @@ $this->assign('title', 'Alterar código de recorte');
 
                 // Valores fixos para cutout_type
                 $cutoutTypes = [
-                    'Primeira' => 'Primeira',
-                    'Segunda' => 'Segunda',
-                    'Osso e Pelanca' => 'Osso e Pelanca',
+                    'PRIMEIRA' => 'Primeira',
+                    'SEGUNDA' => 'Segunda',
+                    'OSSO E PELANCA' => 'Osso e Pelanca',
+                    'OSSO A DESCARTE' => 'Osso a Descarte',
                 ];
 
                 // Campos do formulário

@@ -67,9 +67,38 @@ class StoreCutoutCodesTable extends Table
             ->notEmptyString('cutout_code');
 
         $validator
-            ->scalar('cutout_type')
+            ->inList('cutout_type', ['PRIMEIRA', 'SEGUNDA', 'OSSO E PELANCA', 'OSSO A DESCARTE'])
             ->requirePresence('cutout_type', 'create')
             ->notEmptyString('cutout_type');
+
+        $validator
+            ->numeric('percent_ad_cm')
+            ->notEmptyString('percent_ad_cm')
+            ->add('percent_ad_cm', 'custom', [
+                'rule' => function ($value, $context) {
+                    $cutoutType = $context['data']['cutout_type'] ?? null;
+                    if (in_array($cutoutType, ['PRIMEIRA', 'SEGUNDA'])) {
+                        return $value > 0;
+                    }
+                    return true;
+                },
+                'message' => 'For PRIMEIRA and SEGUNDA, percent ad cm must be greater than 0'
+            ]);
+
+        $validator
+            ->scalar('atribui_cm_rs')
+            ->maxLength('atribui_cm_rs', 50)
+            ->allowEmptyString('atribui_cm_rs')
+            ->add('atribui_cm_rs', 'custom', [
+                'rule' => function ($value, $context) {
+                    $cutoutType = $context['data']['cutout_type'] ?? null;
+                    if (!in_array($cutoutType, ['PRIMEIRA', 'SEGUNDA'])) {
+                        return $value === 'CM' || (is_numeric($value) && $value > 0);
+                    }
+                    return true;
+                },
+                'message' => 'For cutout types other than PRIMEIRA and SEGUNDA, atribui cm rs must be "CM" or a float greater than 0'
+            ]);
 
         return $validator;
     }

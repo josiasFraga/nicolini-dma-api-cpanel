@@ -83,42 +83,46 @@ class StoreCutoutCodesController extends AppController
     {
         $storeCutoutCode = $this->StoreCutoutCodes->newEmptyEntity();
         if ($this->request->is('post')) {
-            $storeCutoutCode = $this->StoreCutoutCodes->patchEntity($storeCutoutCode, $this->request->getData());
-            // Validação personalizada
-            if (($storeCutoutCode->percent_ad_cm == 0 || empty($storeCutoutCode->percent_ad_cm)) &&
-                (empty($storeCutoutCode->atribui_cm_rs) || $storeCutoutCode->atribui_cm_rs == '0')) {
-                $this->Flash->error(__('O campo Percent Ad Cm ou Atribui Cm Rs deve estar preenchido.'));
+            $dados = $this->request->getData();
+
+            if ( $dados['cutout_type'] === 'PRIMEIRA' || $dados['cutout_type'] === 'SEGUNDA' ) {
+                $dados['atribui_cm_rs'] = "";
             } else {
-                if ($this->StoreCutoutCodes->save($storeCutoutCode)) {
-                    $this->Flash->success(__('O código de recorte foi salvo com sucesso.'));
-    
-                    return $this->redirect(['action' => 'index']);
-                }
-                $this->Flash->error(__('Não foi possível salvar o código de recorte. Por favor, tente novamente.'));
+                $dados['percent_ad_cm'] = 0;
             }
+    
+            $storeCutoutCode = $this->StoreCutoutCodes->patchEntity($storeCutoutCode, $dados);
+            if ($this->StoreCutoutCodes->save($storeCutoutCode)) {
+                $this->Flash->success(__('The store cutout code has been saved.'));
+    
+                return $this->redirect(['action' => 'index']);
+            }
+            $this->Flash->error(__('The store cutout code could not be saved. Please, try again.'));
         }
         $this->set(compact('storeCutoutCode'));
     }
-
+    
     public function edit($id = null)
     {
         $storeCutoutCode = $this->StoreCutoutCodes->get($id, [
             'contain' => []
         ]);
         if ($this->request->is(['patch', 'post', 'put'])) {
-            $storeCutoutCode = $this->StoreCutoutCodes->patchEntity($storeCutoutCode, $this->request->getData());
-            // Validação personalizada
-            if (($storeCutoutCode->percent_ad_cm == 0 || empty($storeCutoutCode->percent_ad_cm)) &&
-                (empty($storeCutoutCode->atribui_cm_rs) || $storeCutoutCode->atribui_cm_rs == '0')) {
-                $this->Flash->error(__('O campo Percent Ad Cm ou Atribui Cm Rs deve estar preenchido.'));
+            $dados = $this->request->getData();
+
+            if ( $dados['cutout_type'] === 'PRIMEIRA' || $dados['cutout_type'] === 'SEGUNDA' ) {
+                $dados['atribui_cm_rs'] = "";
             } else {
-                if ($this->StoreCutoutCodes->save($storeCutoutCode)) {
-                    $this->Flash->success(__('O código de recorte foi salvo com sucesso.'));
-    
-                    return $this->redirect(['action' => 'index']);
-                }
-                $this->Flash->error(__('Não foi possível salvar o código de recorte. Por favor, tente novamente.'));
+                $dados['percent_ad_cm'] = 0;
             }
+
+            $storeCutoutCode = $this->StoreCutoutCodes->patchEntity($storeCutoutCode, $dados);
+            if ($this->StoreCutoutCodes->save($storeCutoutCode)) {
+                $this->Flash->success(__('The store cutout code has been saved.'));
+    
+                return $this->redirect(['action' => 'index']);
+            }
+            $this->Flash->error(__('The store cutout code could not be saved. Please, try again.'));
         }
         $this->set(compact('storeCutoutCode'));
     }

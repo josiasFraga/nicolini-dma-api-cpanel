@@ -612,42 +612,44 @@ class DmaController extends AppController
             $peso_entradas_total += $entrada['quantity'];
         }
 
-
         $calculos_entradas = [];
 
+        $this->loadModel('StoreCutoutCodes');
+    
         // Calcula a representatividade
         foreach( $entradas as $key => $entrada ){
 
-            $good_code = $saida['good_code'];
-            $quantity = $saida['quantity'];
-   
-            $custo_total = 0;
-   
-            if ( $entrada['good']['opcusto'] == "M" ) {
-                $custo_total = $entrada['quantity'] * $dados_mercadoria['customed'];
-            } else {
-                $custo_total = $entrada['quantity'] * $dados_mercadoria['custotab'];
-            }
+            $good_code = $entrada['good_code'];
+            $store_code = $entrada['store_code'];
+            $label = $entrada['cutout_type'];
+            $quantity = $entrada['quantity'];
 
-            if ( $entrada['cutout_type'] == 'Osso a Descarte' ) {
-                $calculos_entradas[$entrada['cutout_type']]['representatividade'] = (100*1)/$peso_entradas_total;
-                $calculos_entradas[$entrada['cutout_type']]['kg'] = 1;
-            } else if ( $entrada['cutout_type'] == 'Osso e Pelanca' ) {
-                $calculos_entradas[$entrada['cutout_type']]['representatividade'] = (100*$entrada['quantity'])/$peso_entradas_total;
-                $calculos_entradas[$entrada['cutout_type']]['kg'] = $entrada['quantity'];                
-            }else {
-                $calculos_entradas[$entrada['cutout_type']]['representatividade'] = (100*$entrada['quantity'])/$peso_entradas_total;
-                $calculos_entradas[$entrada['cutout_type']]['kg'] = $entrada['quantity'];
-            }
+            $this->loadModel('Dma');
+    
+            $dados_recorte = $this->StoreCutoutCodes->find()
+            ->where([
+                'StoreCutoutCodes.store_code' => $store_code,
+                'StoreCutoutCodes.cutout_type' => strtoupper($label)
+            ])
+            ->first()
+            ->toArray();
+
+            $calculos_entradas[$entrada['cutout_type']]['representatividade'] = (100*$quantity)/$peso_entradas_total;
+            $calculos_entradas[$entrada['cutout_type']]['kg'] = $quantity;
+
+            $calculos_entradas[$entrada['cutout_type']]['_cutout_data'] = $dados_recorte;
 
         }
 
         $total_saidas_prev = 0;
         foreach( $calculos_entradas as $key => $calculo ){
-            if ( $key == 'Osso a Descarte' ) {
-                $calculos_entradas[$key]['custo_total_prev'] = $custo_saidas_medio;
-            } else if( $key == 'Osso e Pelanca' ) {
-                $calculos_entradas[$key]['custo_total_prev'] = $calculos_entradas[$key]['kg'];
+
+            if ( $key == 'Osso e Pelanca') {
+                if ( $calculo['_cutout_data']['atribui_cm_rs'] == 'CM' ) {
+                    $calculos_entradas[$key]['custo_total_prev'] = $custo_saidas_medio;
+                } else {
+                    $calculos_entradas[$key]['custo_total_prev'] = $calculo['_cutout_data']['atribui_cm_rs'] * $calculo['kg'];
+                }
             } else {
                 $calculos_entradas[$key]['custo_total_prev'] = $custo_saidas_total*($calculo['representatividade']/100);
             }
@@ -655,27 +657,34 @@ class DmaController extends AppController
             $total_saidas_prev += $calculos_entradas[$key]['custo_total_prev'];
         }
 
+
+
         $dif_total_saidas_x_total_entradas_prev = $custo_saidas_total-$total_saidas_prev;
-        $trinta_porcento_diferenca = $dif_total_saidas_x_total_entradas_prev*0.3;
-        $setenta_porcento_diferenca = $dif_total_saidas_x_total_entradas_prev*0.7;
+
+
         
         foreach( $calculos_entradas as $key => $calculo ){
             if ( $key === 'Primeira' ) {
-                $calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'] + $setenta_porcento_diferenca;
+                $percentage_to_sum = $calculo['_cutout_data']['percent_ad_cm']/100;
+                $value_to_sum = $dif_total_saidas_x_total_entradas_prev * $percentage_to_sum;
+                $calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'] + $value_to_sum;
                 $calculos_entradas[$key]['custo_medio'] = $calculos_entradas[$key]['custo_total']/$calculos_entradas[$key]['kg'];
             }
             else if ( $key === 'Segunda' ) {
-                $calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'] + $trinta_porcento_diferenca;
+                $percentage_to_sum = $calculo['_cutout_data']['percent_ad_cm']/100;
+                $value_to_sum = $dif_total_saidas_x_total_entradas_prev * $percentage_to_sum;
+                $calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'] + $value_to_sum;
                 $calculos_entradas[$key]['custo_medio'] = $calculos_entradas[$key]['custo_total']/$calculos_entradas[$key]['kg'];
-            } 
-            else if ( $key === 'Osso e Pelanca' ) {
-                $calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'] + $setenta_porcento_diferenca;
-                $calculos_entradas[$key]['custo_medio'] = 1;
-            } 
-            else {
-                $calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'];
-                $calculos_entradas[$key]['custo_medio'] = $calculos_entradas[$key]['custo_total_prev'];
+            } else {
+                
+                if ( $calculo['_cutout_data']['atribui_cm_rs'] == 'CM' ) {
+                    $calculos_entradas[$key]['custo_medio'] = $custo_saidas_medio;
+                } else {
+                    $calculos_entradas[$key]['custo_medio'] = $calculo['_cutout_data']['atribui_cm_rs'];
+                }
+
             }
+  
    
         }
 
