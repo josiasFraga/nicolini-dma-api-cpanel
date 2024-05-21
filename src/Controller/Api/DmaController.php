@@ -71,7 +71,24 @@ class DmaController extends AppController
         if (!$user || $user->pswd != md5($dados["password"])) {
             return $this->jsonResponse('erro', 'O usuário ou a senha informados são inválidos!');
         }
+
+        $quantities_in = array_map(function($dma) {
+            return $dma->quantity;
+        }, $entradas);
     
+        $quantities_out = array_map(function($dma) {
+            return $dma->quantity;
+        }, $saidas);
+
+        $total_kg_entradas = array_sum($quantities_in);
+        $total_kg_saidas = array_sum($quantities_out);
+
+        $diferenca_em_percent = $this->calcularDiferencaPercentual($total_kg_entradas, $total_kg_saidas);
+
+        if ( $this->tolerancia_diferenca_pesos < $diferenca_em_percent ) {
+            return $this->jsonResponse('erro', 'A diferença entre entradas e saídas não pode ser maior que '.$this->tolerancia_diferenca_pesos.'%, atualmente está em '.$diferenca_em_percent.'%');
+        }
+
         // Tratamento de datas
         $date_accounting = $this->calculateDateAccounting($store_code);
 
@@ -719,4 +736,18 @@ class DmaController extends AppController
             return $this->jsonResponse('erro', 'Ocorreu um erro ao finalizar o DMA.', $errors);
         }
     }
+    
+    private function calcularDiferencaPercentual($valorOriginal, $novoValor) {
+        if ($valorOriginal == 0) {
+            return "Erro: O valor original não pode ser zero.";
+        }
+        
+        $diferenca = $novoValor - $valorOriginal;
+        $percentual = ($diferenca / $valorOriginal) * 100;
+
+        $percentual = abs($percentual);
+        
+        return $percentual;
+    }
+    
 }
