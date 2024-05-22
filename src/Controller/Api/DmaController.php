@@ -25,12 +25,22 @@ class DmaController extends AppController
 
     public function finish()
     {
+    
         $jwtPayload = $this->request->getAttribute('jwtPayload');
         $userId = $jwtPayload->sub;
         $dados = json_decode($this->request->getData('dados'), true);
 
         $this->loadModel('Dma');
         $this->loadModel('Users');
+        $this->loadModel('DmaConfigurations');
+
+        $tolerancia_diferenca_pesos = $this->DmaConfigurations
+        ->find()
+        ->where([
+            'DmaConfigurations.config_key' => 'weight_difference_margin'
+        ])
+        ->first();
+        $tolerancia_diferenca_pesos = floatval($tolerancia_diferenca_pesos->config);
 
         $store_code = $dados['store_code'];
 
@@ -85,8 +95,8 @@ class DmaController extends AppController
 
         $diferenca_em_percent = $this->calcularDiferencaPercentual($total_kg_entradas, $total_kg_saidas);
 
-        if ( $this->tolerancia_diferenca_pesos < $diferenca_em_percent ) {
-            return $this->jsonResponse('erro', 'A diferença entre entradas e saídas não pode ser maior que '.$this->tolerancia_diferenca_pesos.'%, atualmente está em '.$diferenca_em_percent.'%');
+        if ( $tolerancia_diferenca_pesos < $diferenca_em_percent ) {
+            return $this->jsonResponse('erro', 'A diferença entre entradas e saídas não pode ser maior que '.$tolerancia_diferenca_pesos.'%, atualmente está em '.$diferenca_em_percent.'%');
         }
 
         // Tratamento de datas

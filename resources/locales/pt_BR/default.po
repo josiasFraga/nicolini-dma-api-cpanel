@@ -162,3 +162,6 @@ msgstr "Principal"
 
 msgid "Cost"
 msgstr "Custo"
+
+msgid "Config Key"
+msgstr "Chave"

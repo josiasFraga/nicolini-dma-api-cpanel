@@ -38,7 +38,6 @@ class AppController extends Controller
      * @return void
      */
 
-    public $tolerancia_diferenca_pesos = 5;
     public function initialize(): void
     {
         parent::initialize();
