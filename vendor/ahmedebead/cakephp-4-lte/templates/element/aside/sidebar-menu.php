@@ -38,6 +38,12 @@
       </a>
     </li>
 
+    <li class="nav-item <?php echo $this->getRequest()->getParam('controller') === 'Costs' ? 'menu-open' : ''; ?>">
+      <a href="<?php echo $this->Url->build('/admin/costs'); ?>" class="nav-link">
+        <p>Custos</p>
+      </a>
+    </li>
+
     <!-- Outros itens do menu aqui -->
 
   </ul>

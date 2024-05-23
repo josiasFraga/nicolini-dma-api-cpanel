@@ -613,6 +613,11 @@ class DmaController extends AppController
 
             $good_code = $saida['good_code'];
             $quantity = $saida['quantity'];
+            $date_accounting = $saida['date_accounting'];
+
+            if ( $date_accounting > date('Y-m-d') ){ 
+                return $this->jsonResponse('erro', 'Você não pode finalizar lançamentos de amanhã.');
+            }
    
             $dados_mercadoria = $this->Mercadorias->find('all')
             ->where([
@@ -650,6 +655,11 @@ class DmaController extends AppController
             $store_code = $entrada['store_code'];
             $label = $entrada['cutout_type'];
             $quantity = $entrada['quantity'];
+            $date_accounting = $entrada['date_accounting'];
+
+            if ( $date_accounting > date('Y-m-d') ){ 
+                return $this->jsonResponse('erro', 'Você não pode finalizar lançamentos de amanhã.');
+            }
 
             $this->loadModel('Dma');
     

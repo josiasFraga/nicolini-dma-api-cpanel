@@ -120,6 +120,16 @@ document.getElementById("printButton").addEventListener("click", function() {
   window.print();
   document.body.innerHTML = originalContent;
 });
+
+// Esconder o elemento com a classe main-sidebar ao carregar a página
+document.addEventListener("DOMContentLoaded", function() {
+  var body = document.body;
+  if (body) {
+    body.classList.add("sidebar-collapse");
+    body.classList.remove("sidebar-mini");
+  }
+ 
+});
 </script>
 
 <!-- Inclusão do CSS do Select2 -->

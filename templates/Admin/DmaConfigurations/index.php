@@ -38,7 +38,7 @@ $this->assign('title', 'Configurações');
               <?php foreach ($dmaConfigurations as $dmaConfiguration): ?>
                 <tr>
                   <td class="text-center"><?= $this->Number->format($dmaConfiguration->id) ?></td>
-                  <td><?= h($dmaConfiguration->config_key == "weight_difference_margin" ? "Margem de peso para finalização" : $dmaConfiguration->config_key) ?></td>
+                  <td><?= h($dmaConfiguration->config_key == "weight_difference_margin" ? "Tolerancia % de diferenças entrada/saidas ao finalizar" : $dmaConfiguration->config_key) ?></td>
                   <td><?= h($dmaConfiguration->config) ?></td>
                   <td class="actions text-center">
                       <?= $this->Html->link(__('Edit'), ['action' => 'edit', $dmaConfiguration->id], ['class'=>'btn btn-warning btn-xs']) ?>
