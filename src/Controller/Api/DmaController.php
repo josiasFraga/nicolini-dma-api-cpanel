@@ -325,6 +325,9 @@ class DmaController extends AppController
 
         if ( $dados['kg'] < 0 ) {
 
+            debug($dados['kg']);
+            die();
+
             $qtd_diminuir = abs($dados['kg']);
 
             if ( count($dados_lancados) === 0 ) {
