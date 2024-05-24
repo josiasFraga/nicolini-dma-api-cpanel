@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use Cake\Event\EventInterface;
+use Cake\ORM\TableRegistry;
 use Cake\Log\Log;
 use Cake\I18n\FrozenTime;
 use Cake\I18n\FrozenDate;
@@ -34,6 +35,7 @@ class DmaController extends AppController
         $this->loadModel('Dma');
         $this->loadModel('Users');
         $this->loadModel('DmaConfigurations');
+        $userStoreTable = TableRegistry::getTableLocator()->get('ApoUsuarioloja');
 
         $tolerancia_diferenca_pesos = $this->DmaConfigurations
         ->find()
@@ -48,7 +50,7 @@ class DmaController extends AppController
         $entradas = $this->Dma->find('all')
         ->where([
             'Dma.ended' => 'N',
-            'Dma.user' => $userId,
+            //'Dma.user' => $userId,
             'Dma.type' => 'Entrada',
             'Dma.store_code' => $store_code
         ])
@@ -57,7 +59,7 @@ class DmaController extends AppController
         $saidas = $this->Dma->find('all')
         ->where([
             'Dma.ended' => 'N',
-            'Dma.user' => $userId,
+            //'Dma.user' => $userId,
             'Dma.type' => 'Saida',
             'Dma.store_code' => $store_code
         ])
@@ -69,18 +71,27 @@ class DmaController extends AppController
     
         if ( count($entradas) == 0 ) {
             return $this->jsonResponse('erro', 'Nenhuma entrada informada.');
-        }
-    
-        if ($dados['user'] != $userId) {
-            return $this->jsonResponse('erro', 'Usuário informado diferente do usuário logado no app');
-        }
+        }    
     
         $user = $this->Users->find()
-            ->where(['login' => $dados["user"]])
-            ->first();
+        ->where([
+            'login' => $dados["user"]
+        ])
+        ->first();
     
         if (!$user || $user->pswd != md5($dados["password"])) {
             return $this->jsonResponse('erro', 'O usuário ou a senha informados são inválidos!');
+        }
+
+        $user_store = $userStoreTable->find()
+        ->where([
+            'Login' => $dados["user"],
+            'Loja' => $store_code
+        ])
+        ->first();
+
+        if ( !$user_store ) {
+            return $this->jsonResponse('erro', 'O usuário não tem acesso a loja informada!');
         }
 
         $quantities_in = array_map(function($dma) {
@@ -107,7 +118,7 @@ class DmaController extends AppController
             return $this->jsonResponse('erro', 'Não é possível salvar lançamentos para depois de amanhã.');
         }
         
-        return $this->finishDma($entradas, $saidas, 'N');
+        return $this->finishDma($entradas, $saidas, 'N', $dados["user"]);
         
     }
 
@@ -558,7 +569,7 @@ class DmaController extends AppController
                     return $this->jsonResponse('erro', 'Nenhuma entrada informada.');
                 }
 
-                $this->finishDma($entradas, $saidas, 'Y');
+                $this->finishDma($entradas, $saidas, 'Y', 'atutomática');
 
             }
 
@@ -569,7 +580,7 @@ class DmaController extends AppController
 
     }
 
-    private function finishDma ($entradas, $saidas, $ended_by_cron) {
+    private function finishDma ($entradas, $saidas, $ended_by_cron, $ended_by) {
     
         $this->loadModel('Mercadorias');
         $this->loadModel('Dma');
@@ -737,7 +748,8 @@ class DmaController extends AppController
                 'id' => $entrada['id'],
                 'cost' => $calculos_entradas[$entrada['cutout_type']]['custo_medio'],
                 'ended' => 'Y',
-                'ended_by_cron' => $ended_by_cron
+                'ended_by_cron' => $ended_by_cron,
+                'ended_by' => $ended_by
             ];
         }
 
@@ -747,7 +759,8 @@ class DmaController extends AppController
             $novas_saidas[] = [
                 'id' => $saida['id'],
                 'ended' => 'Y',
-                'ended_by_cron' => $ended_by_cron
+                'ended_by_cron' => $ended_by_cron,
+                'ended_by' => $ended_by
             ];
         }
 

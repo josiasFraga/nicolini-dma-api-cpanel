@@ -45,6 +45,7 @@ class Dma extends Entity
         'quantity' => true,
         'cost' => true,
         'ended' => true,
+        'ended_by' => true,
         'ended_by_cron' => true
     ];
 }
