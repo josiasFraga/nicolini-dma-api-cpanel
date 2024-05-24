@@ -109,10 +109,8 @@ class ResultsController extends AppController
 
                 if ( $dma['ended'] === 'N' ) {
                     $dadosRelatorio[$storeCode]['finalizado_por'] = 'em andamento';
-                } else if ( $dma['ended'] === 'Y' && $dma['ended_by_cron'] === 'Y' ) {
-                    $dadosRelatorio[$storeCode]['finalizado_por'] = 'Sistema';
-                } else if ( $dma['ended'] === 'Y' && $dma['ended_by_cron'] === 'N' ) {
-                    $dadosRelatorio[$storeCode]['finalizado_por'] = $dma['user'];
+                } else {
+                    $dadosRelatorio[$storeCode]['finalizado_por'] = $dma['ended_by'];
                 }
 
                 // Se o registro de DMA for do tipo saída
