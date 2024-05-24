@@ -6,6 +6,7 @@ namespace App\Controller\Api;
 use Cake\Event\EventInterface;
 use Cake\Log\Log;
 use Cake\I18n\FrozenTime;
+use Cake\I18n\FrozenDate;
 
 class DmaController extends AppController
 {
@@ -614,8 +615,10 @@ class DmaController extends AppController
             $good_code = $saida['good_code'];
             $quantity = $saida['quantity'];
             $date_accounting = $saida['date_accounting'];
+            $dateString = date('Y-m-d');
+            $dateToday = new FrozenDate($dateString);
 
-            if ( $date_accounting > date('Y-m-d') ){ 
+            if ($date_accounting->gt($dateToday)) {
                 return $this->jsonResponse('erro', 'Você não pode finalizar lançamentos de amanhã.');
             }
    
@@ -656,8 +659,10 @@ class DmaController extends AppController
             $label = $entrada['cutout_type'];
             $quantity = $entrada['quantity'];
             $date_accounting = $entrada['date_accounting'];
+            $dateString = date('Y-m-d');
+            $dateToday = new FrozenDate($dateString);
 
-            if ( $date_accounting > date('Y-m-d') ){ 
+            if ($date_accounting->gt($dateToday)) {
                 return $this->jsonResponse('erro', 'Você não pode finalizar lançamentos de amanhã.');
             }
 
