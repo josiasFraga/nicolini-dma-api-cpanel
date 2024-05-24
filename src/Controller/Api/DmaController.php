@@ -312,7 +312,9 @@ class DmaController extends AppController
 
         if ( $dados['kg'] == 0 ) {
             return $this->jsonResponse('ok', 'Saída cadastrada com sucesso!');
-        }        
+        }
+
+        $dados['kg'] = (float)$dados['kg'];
 
         $dados_lancados = $this->Dma->find('all')
         ->where([
@@ -324,9 +326,6 @@ class DmaController extends AppController
         ])->toArray();
 
         if ( $dados['kg'] < 0 ) {
-
-            debug($dados['kg']);
-            die();
 
             $qtd_diminuir = abs($dados['kg']);
 
