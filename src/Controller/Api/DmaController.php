@@ -316,6 +316,7 @@ class DmaController extends AppController
 
         $dados_lancados = $this->Dma->find('all')
         ->where([
+            'Dma.store_code' => $dados['store_code'],
             'Dma.ended' => 'N',
             'Dma.user' => $userId,
             'Dma.type' => 'Saida',
