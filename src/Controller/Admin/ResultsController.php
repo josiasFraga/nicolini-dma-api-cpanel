@@ -317,6 +317,7 @@ class ResultsController extends AppController
                     'rendimento_esperado_primeira' => 0,
                     'rendimento_esperado_segunda' => 0,
                     'rendimento_esperado_osso_pelanca' => 0,
+                    'rendimento_esperado_osso_descarte' => 0,
                     'rendimento_executado_primeira' => 0,
                     'rendimento_executado_segunda' => 0,
                     'rendimento_executado_osso_pelanca' => 0,
@@ -475,7 +476,7 @@ class ResultsController extends AppController
             $dadosRelatorio[$storeCode]['rendimento_dif_primeira'] = $dadosRelatorio[$storeCode]['rendimento_executado_primeira']-$dadosRelatorio[$storeCode]['rendimento_esperado_primeira'];
             $dadosRelatorio[$storeCode]['rendimento_dif_segunda'] = $dadosRelatorio[$storeCode]['rendimento_executado_segunda']-$dadosRelatorio[$storeCode]['rendimento_esperado_segunda'];
             $dadosRelatorio[$storeCode]['rendimento_dif_osso_pelanca'] = $dadosRelatorio[$storeCode]['rendimento_executado_osso_pelanca']-$dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca'];
-            $dadosRelatorio[$storeCode]['rendimento_dif_osso_descarte'] = $dadosRelatorio[$storeCode]['rendimento_executado_descarte']-$dadosRelatorio[$storeCode]['rendimento_esperado_osso_descarte'];
+            $dadosRelatorio[$storeCode]['rendimento_dif_osso_descarte'] = $dadosRelatorio[$storeCode]['rendimento_executado_osso_descarte']-$dadosRelatorio[$storeCode]['rendimento_esperado_osso_descarte'];
 
             $dadosRelatorio[$storeCode]['base_calc_rank'] += 
                 (!empty($dadosRelatorio[$storeCode]['rendimento_esperado_primeira']) ? $dadosRelatorio[$storeCode]['rendimento_executado_primeira'] / $dadosRelatorio[$storeCode]['rendimento_esperado_primeira'] : $dadosRelatorio[$storeCode]['rendimento_executado_primeira'])
