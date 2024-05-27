@@ -86,7 +86,7 @@ class ResultsController extends AppController
                         'rendimento_executado_primeira' => 0,
                         'rendimento_executado_segunda' => 0,
                         'rendimento_executado_osso_pelanca' => 0,
-                        'rendimento_executado_osso_a_descarte' => 0,
+                        'rendimento_executado_osso_descarte' => 0,
                         'rendimento_dif_primeira' => 0,
                         'rendimento_dif_segunda' => 0,
                         'rendimento_dif_osso_pelanca' => 0,
