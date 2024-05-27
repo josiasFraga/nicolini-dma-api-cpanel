@@ -82,6 +82,7 @@ class ResultsController extends AppController
                         'rendimento_esperado_primeira' => 0,
                         'rendimento_esperado_segunda' => 0,
                         'rendimento_esperado_osso_pelanca' => 0,
+                        'rendimento_esperado_osso_descarte' => 0,
                         'rendimento_executado_primeira' => 0,
                         'rendimento_executado_segunda' => 0,
                         'rendimento_executado_osso_pelanca' => 0,
