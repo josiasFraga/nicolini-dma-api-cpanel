@@ -33,6 +33,7 @@ $this->assign('title', 'Resultados');
                     <th colspan="4" class="text-center">PRIMEIRA</th>
                     <th colspan="4" class="text-center">SEGUNDA</th>
                     <th colspan="4" class="text-center">OSSO E PELANCA</th>
+                    <th colspan="4" class="text-center">OSSO A DESCARTE</th>
      
                     <th rowspan="2" class="text-center">Posição Rank</th>
                     <th rowspan="2" class="text-center">Finalizado por</th>
@@ -45,6 +46,11 @@ $this->assign('title', 'Resultados');
                     <th class="text-center">R$</th>
                     <th class="text-center">Kg</th>
                     <th class="text-center">R$</th>
+
+                    <th class="text-center">R$ Custo Médio</th>
+                    <th class="text-center">R$ Previstos</th>
+                    <th class="text-center">R$ Realizados</th>
+                    <th class="text-center">R$ Diferença</th>
 
                     <th class="text-center">R$ Custo Médio</th>
                     <th class="text-center">R$ Previstos</th>
@@ -93,6 +99,11 @@ $this->assign('title', 'Resultados');
                             <td class="text-center"><?= number_format($dado['rendimento_esperado_osso_pelanca'],2,',','.') ?></td>
                             <td class="text-center"><?= number_format($dado['rendimento_executado_osso_pelanca'],2,',','.') ?></td>
                             <td class="text-center"><?= number_format($dado['rendimento_dif_osso_pelanca'],2,',','.') ?></td>
+
+                            <td class="text-center"><?= number_format($dado['custo_med_osso_descarte'],2,',','.') ?></td>
+                            <td class="text-center"><?= number_format($dado['rendimento_esperado_osso_descarte'],2,',','.') ?></td>
+                            <td class="text-center"><?= number_format($dado['rendimento_executado_osso_descarte'],2,',','.') ?></td>
+                            <td class="text-center"><?= number_format($dado['rendimento_dif_osso_descarte'],2,',','.') ?></td>
 
                             <td class="text-center"><?= $dado['posicao_rank'] ?></td>
                             <td class="text-center"><?= $dado['finalizado_por'] ?></td>

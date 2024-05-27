@@ -32,6 +32,7 @@ class ExpectedYieldFixture extends TestFixture
                 'prime' => 1,
                 'second' => 1,
                 'bones_skin' => 1,
+                'bones_discard' => 1,
             ],
         ];
         parent::init();

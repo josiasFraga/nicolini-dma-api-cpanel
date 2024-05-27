@@ -39,6 +39,7 @@ $this->assign('title', 'Expectativas de Rendimento');
                   <th scope="col" class="text-center"><?= $this->Paginator->sort('prime') ?></th>
                   <th scope="col" class="text-center"><?= $this->Paginator->sort('second') ?></th>
                   <th scope="col" class="text-center"><?= $this->Paginator->sort('bones_skin') ?></th>
+                  <th scope="col" class="text-center"><?= $this->Paginator->sort('bones_discard') ?></th>
                   <th scope="col" class="text-center"><?= $this->Paginator->sort('main') ?></th>
                   <th scope="col" class="actions text-center"><?= __('Actions') ?></th>
               </tr>
@@ -53,6 +54,7 @@ $this->assign('title', 'Expectativas de Rendimento');
                   <td class="text-center"><?= $this->Number->format($expectedYield->prime) ?></td>
                   <td class="text-center"><?= $this->Number->format($expectedYield->second) ?></td>
                   <td class="text-center"><?= $this->Number->format($expectedYield->bones_skin) ?></td>
+                  <td class="text-center"><?= $this->Number->format($expectedYield->bones_discard) ?></td>
                   <td class="text-center"><?= $expectedYield->main == 'Y' ? 'Sim' : 'Não' ?></td>
                   <td class="actions text-center">
                       <?= $this->Html->link(__('Edit'), ['action' => 'edit', $expectedYield->id], ['class'=>'btn btn-warning btn-xs']) ?>

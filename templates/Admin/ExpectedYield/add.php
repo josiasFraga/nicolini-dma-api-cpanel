@@ -54,6 +54,11 @@ $this->assign('title', 'Adicionar expectativa de rendimento');
                     'type' => 'text',
                     'escape' => false
                 ]);
+                echo $this->Form->control('bones_discard', [
+                    'class' => 'decimal-mask form-control',
+                    'type' => 'text',
+                    'escape' => false
+                ]);
                 echo $this->Form->control('main', [
                   'type' => 'select',
                   'options' => [

@@ -165,3 +165,6 @@ msgstr "Custo"
 
 msgid "Config Key"
 msgstr "Chave"
+
+msgid "Bones Discard"
+msgstr "Osso a Descarte"

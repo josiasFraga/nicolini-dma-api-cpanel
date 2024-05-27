@@ -75,7 +75,7 @@ class ExpectedYieldController extends AppController
         $expectedYield = $this->ExpectedYield->newEmptyEntity();
         if ($this->request->is('post')) {
             $dados = $this->request->getData();
-            $fieldsToFormat = ['prime', 'second', 'bones_skin'];
+            $fieldsToFormat = ['prime', 'second', 'bones_skin', 'bones_discard'];
 
             $soma = 0;
     
@@ -123,7 +123,7 @@ class ExpectedYieldController extends AppController
         ]);
         if ($this->request->is(['patch', 'post', 'put'])) {
             $dados = $this->request->getData();
-            $fieldsToFormat = ['prime', 'second', 'bones_skin'];
+            $fieldsToFormat = ['prime', 'second', 'bones_skin', 'bones_discard'];
             $soma = 0;
             foreach ($fieldsToFormat as $field) {
                 if (isset($dados[$field])) {

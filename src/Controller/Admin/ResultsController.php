@@ -85,12 +85,15 @@ class ResultsController extends AppController
                         'rendimento_executado_primeira' => 0,
                         'rendimento_executado_segunda' => 0,
                         'rendimento_executado_osso_pelanca' => 0,
+                        'rendimento_executado_osso_a_descarte' => 0,
                         'rendimento_dif_primeira' => 0,
                         'rendimento_dif_segunda' => 0,
                         'rendimento_dif_osso_pelanca' => 0,
+                        'rendimento_dif_osso_a_descarte' => 0,
                         'custo_med_primeira' => 0,
                         'custo_med_segunda' => 0,
                         'custo_med_osso_pelanca' => 0,
+                        'custo_med_osso_descarte' => 0,
                         'encerramento' => '2000-01-01',
                         'base_calc_rank' => 0,
                         'posicao_rank' => 1,
@@ -141,19 +144,23 @@ class ResultsController extends AppController
                         $espectativa['prime'] = 0;
                         $espectativa['second'] = 0;
                         $espectativa['bones_skin'] = 0;
+                        $espectativa['bones_discard'] = 0;
                     }
 
                     $espectativa_primeira_porc = $espectativa['prime'] ? $espectativa['prime']/100 : 0;
                     $espectativa_segunda_porc = $espectativa['second'] ? $espectativa['second']/100 : 0;
                     $espectativa_osso_pelanca_porc = $espectativa['bones_skin'] ? $espectativa['bones_skin']/100 : 0;
+                    $espectativa_osso_descarte_porc = $espectativa['bones_discard'] && $espectativa['bones_discard'] > 0 ? $espectativa['bones_discard']/100 : 0;
 
                     $espectativa_primeira = $dma_qtd * $espectativa_primeira_porc;
                     $espectativa_segunda = $dma_qtd * $espectativa_segunda_porc;
                     $espectativa_osso_pelanca = $dma_qtd * $espectativa_osso_pelanca_porc;
+                    $espectativa_osso_descarte = $dma_qtd * $espectativa_osso_descarte_porc;
 
                     $dadosRelatorio[$storeCode]['rendimento_esperado_primeira'] += $espectativa_primeira * $valor_mercadoria;
                     $dadosRelatorio[$storeCode]['rendimento_esperado_segunda'] += $espectativa_segunda * $valor_mercadoria;
                     $dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca'] += $espectativa_osso_pelanca * $valor_mercadoria;
+                    $dadosRelatorio[$storeCode]['rendimento_esperado_osso_descarte'] += $espectativa_osso_descarte * $valor_mercadoria;
 
                 }
     
@@ -216,6 +223,11 @@ class ResultsController extends AppController
                     else if ( $cutout_type == "Osso e Pelanca" ) {
                         $dadosRelatorio[$storeCode]['rendimento_executado_osso_pelanca'] += $dma_qtd * $valor_mercadoria;
                         $dadosRelatorio[$storeCode]['custo_med_osso_pelanca'] =  $valor_mercadoria;
+                    }
+
+                    else if ( $cutout_type == "Osso a Descarte" ) {
+                        $dadosRelatorio[$storeCode]['rendimento_executado_osso_descarte'] += $dma_qtd * $valor_mercadoria;
+                        $dadosRelatorio[$storeCode]['custo_med_osso_descarte'] =  $valor_mercadoria;
                     }
           
                 }
@@ -312,6 +324,7 @@ class ResultsController extends AppController
                     'custo_med_primeira' => 0,
                     'custo_med_segunda' => 0,
                     'custo_med_osso_pelanca' => 0,
+                    'custo_med_osso_descarte' => 0,
                     'encerramento' => '2000-01-01',
                     'base_calc_rank' => 0,
                     'posicao_rank' => 1,
@@ -364,15 +377,18 @@ class ResultsController extends AppController
                     $espectativa['prime'] = 0;
                     $espectativa['second'] = 0;
                     $espectativa['bones_skin'] = 0;
+                    $espectativa['bones_discard'] = 0;
                 }
 
                 $espectativa_primeira_porc = $espectativa['prime'] ? $espectativa['prime']/100 : 0;
                 $espectativa_segunda_porc = $espectativa['second'] ? $espectativa['second']/100 : 0;
                 $espectativa_osso_pelanca_porc = $espectativa['bones_skin'] ? $espectativa['bones_skin']/100 : 0;
+                $espectativa_osso_descarte_porc = $espectativa['bones_discard'] && $espectativa['bones_discard'] > 0 ? $espectativa['bones_discard']/100 : 0;
 
                 $espectativa_primeira = $dma_qtd * $espectativa_primeira_porc;
                 $espectativa_segunda = $dma_qtd * $espectativa_segunda_porc;
                 $espectativa_osso_pelanca = $dma_qtd * $espectativa_osso_pelanca_porc;
+                $espectativa_osso_descarte = $dma_qtd * $espectativa_osso_descarte_porc;
 
                 $dadosRelatorio[$storeCode]['rendimento_esperado_primeira'] += $espectativa_primeira * $valor_mercadoria;
                 $dadosRelatorio[$storeCode]['rendimento_esperado_segunda'] += $espectativa_segunda * $valor_mercadoria;
@@ -440,6 +456,11 @@ class ResultsController extends AppController
                     $dadosRelatorio[$storeCode]['rendimento_executado_osso_pelanca'] += $dma_qtd * $valor_mercadoria;
                     $dadosRelatorio[$storeCode]['custo_med_osso_pelanca'] =  $valor_mercadoria;
                 }
+
+                else if ( $cutout_type == "Osso a Descarte" ) {
+                    $dadosRelatorio[$storeCode]['rendimento_executado_osso_descarte'] += $dma_qtd * $valor_mercadoria;
+                    $dadosRelatorio[$storeCode]['custo_med_osso_descarte'] =  $valor_mercadoria;
+                }
         
             }
 
@@ -451,6 +472,7 @@ class ResultsController extends AppController
             $dadosRelatorio[$storeCode]['rendimento_dif_primeira'] = $dadosRelatorio[$storeCode]['rendimento_executado_primeira']-$dadosRelatorio[$storeCode]['rendimento_esperado_primeira'];
             $dadosRelatorio[$storeCode]['rendimento_dif_segunda'] = $dadosRelatorio[$storeCode]['rendimento_executado_segunda']-$dadosRelatorio[$storeCode]['rendimento_esperado_segunda'];
             $dadosRelatorio[$storeCode]['rendimento_dif_osso_pelanca'] = $dadosRelatorio[$storeCode]['rendimento_executado_osso_pelanca']-$dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca'];
+            $dadosRelatorio[$storeCode]['rendimento_dif_osso_descarte'] = $dadosRelatorio[$storeCode]['rendimento_executado_descarte']-$dadosRelatorio[$storeCode]['rendimento_esperado_osso_descarte'];
 
             $dadosRelatorio[$storeCode]['base_calc_rank'] += 
                 (!empty($dadosRelatorio[$storeCode]['rendimento_esperado_primeira']) ? $dadosRelatorio[$storeCode]['rendimento_executado_primeira'] / $dadosRelatorio[$storeCode]['rendimento_esperado_primeira'] : $dadosRelatorio[$storeCode]['rendimento_executado_primeira'])

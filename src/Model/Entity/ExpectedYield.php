@@ -15,6 +15,7 @@ use Cake\ORM\Entity;
  * @property float $prime
  * @property float $second
  * @property float $bones_skin
+ * @property float $bones_discard
  */
 class ExpectedYield extends Entity
 {
@@ -34,6 +35,7 @@ class ExpectedYield extends Entity
         'prime' => true,
         'second' => true,
         'bones_skin' => true,
+        'bones_discard' => true,
         'main' => true,
     ];
 }
