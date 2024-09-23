@@ -30,6 +30,8 @@ $this->assign('title', 'Alterar código de recorte');
                     $storeCodes[sprintf('%03d', $i)] = sprintf('%03d', $i);
                 }
 
+                $storeCodes['ACC'] = 'ACC';
+
                 // Valores fixos para cutout_type
                 $cutoutTypes = [
                     'PRIMEIRA' => 'Primeira',
