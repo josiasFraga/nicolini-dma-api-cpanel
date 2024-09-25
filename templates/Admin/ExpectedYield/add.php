@@ -30,6 +30,8 @@ $this->assign('title', 'Adicionar expectativa de rendimento');
                     $storeCodes[sprintf('%03d', $i)] = sprintf('%03d', $i);
                 }
 
+                $storeCodes['ACC'] = 'ACC';
+
                 // Campos do formulário
                 echo $this->Form->control('store_code', [
                     'type' => 'select',

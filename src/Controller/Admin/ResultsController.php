@@ -44,6 +44,9 @@ class ResultsController extends AppController
         for ($i = 1; $i <= 18; $i++) {
             $storeCodes[sprintf('%03d', $i)] = sprintf('%03d', $i);
         }
+
+        $storeCodes['ACC'] = 'ACC';
+
         $selectedStoreCodes = $storeCodes;
     
         if ($this->request->is('post')) {
@@ -284,6 +287,9 @@ class ResultsController extends AppController
         for ($i = 1; $i <= 18; $i++) {
             $storeCodes[sprintf('%03d', $i)] = sprintf('%03d', $i);
         }
+
+        $storeCodes['ACC'] = 'ACC';
+
         $selectedStoreCodes = $storeCodes;
 
         $this->loadModel('StoreCutoutCodes');
