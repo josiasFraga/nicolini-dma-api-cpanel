@@ -4,22 +4,12 @@ $(document).ready(function () {
     const exportExcelBtn = $('#exportExcel');
     const clearFiltersBtn = $('#clearFilters');
 
-    // Load filters from localStorage
-    const savedFilters = JSON.parse(localStorage.getItem('dmaFilters')) || {};
-    $.each(savedFilters, function (key, value) {
-        const input = filterForm.find(`[name="${key}"]`);
-        if (input.length) {
-            input.val(value);
-        }
-    });
-
     // Apply Filters
     applyFiltersBtn.on('click', function () {
         const filters = filterForm.serializeArray().reduce(function (obj, item) {
             obj[item.name] = item.value;
             return obj;
         }, {});
-        localStorage.setItem('dmaFilters', JSON.stringify(filters));
         window.location.href = `${window.location.pathname}?${$.param(filters)}`;
     });
 
@@ -31,7 +21,6 @@ $(document).ready(function () {
 
     // Clear Filters
     clearFiltersBtn.on('click', function () {
-        localStorage.removeItem('dmaFilters'); // Remove os filtros do localStorage
         filterForm[0].reset(); // Reseta o formulário de filtros
     });
 
