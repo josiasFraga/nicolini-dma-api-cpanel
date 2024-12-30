@@ -168,3 +168,6 @@ msgstr "Chave"
 
 msgid "Bones Discard"
 msgstr "Osso a Descarte"
+
+msgid "User Login"
+msgstr "Usuário"

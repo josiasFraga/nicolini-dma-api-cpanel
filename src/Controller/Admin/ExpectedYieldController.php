@@ -68,8 +68,6 @@ class ExpectedYieldController extends AppController
 
     }
 
-
-
     public function add()
     {
         $expectedYield = $this->ExpectedYield->newEmptyEntity();

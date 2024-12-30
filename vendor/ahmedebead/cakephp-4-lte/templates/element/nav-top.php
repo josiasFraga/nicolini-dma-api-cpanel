@@ -16,7 +16,7 @@
       </a>
     </li>
     <li class="nav-item">
-            <a class="nav-link" data-widget="" data-slide="true" href="<?php echo $this->Url->build('admin/users/logout') ?>" role="button">
+            <a class="nav-link" data-widget="" data-slide="true" href="<?php echo $this->Url->build('/admin/users/logout') ?>" role="button">
                 <i class="fas fa-sign-out-alt"></i>
             </a>
         </li>

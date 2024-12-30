@@ -1,7 +1,7 @@
 <?php
 return [
     'CakephpLteTheme' => [
-        'title' => 'Nicolini',
+        'title' => 'Nicolini App Maneger',
         'logo' => [
             'mini' => '<b>Nicolini</b>',
             'large' => '<b>DMA Admin</b>'

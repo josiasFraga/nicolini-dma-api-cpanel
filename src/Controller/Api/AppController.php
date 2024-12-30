@@ -54,4 +54,10 @@ class AppController extends Controller
          */
         //$this->loadComponent('FormProtection');
     }
+    
+    public function jsonResponse($status, $message, $errors = [], $data = [])
+    {
+        return $this->response->withType('application/json')
+            ->withStringBody(json_encode(compact('status', 'message', 'errors', 'data')));
+    }
 }

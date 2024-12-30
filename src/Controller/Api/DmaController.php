@@ -143,12 +143,6 @@ class DmaController extends AppController
         
     }
     
-    private function jsonResponse($status, $message, $errors = [], $data = [])
-    {
-        return $this->response->withType('application/json')
-            ->withStringBody(json_encode(compact('status', 'message', 'errors', 'data')));
-    }
-    
     private function calculateDateAccounting($store_code)
     {
         $checkLastData = $this->Dma->find()

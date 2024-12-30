@@ -31,6 +31,7 @@ $storeCodes = ['all' => 'Selecionar Todas'] + $storeCodes;
   <!-- Theme style -->
   <?php echo $this->Html->css('CakephpLte./css/adminlte.min.css'); ?>
     <?php echo $this->Html->css('CakephpLte./css/toastr.min.css'); ?>
+    <?php echo $this->Html->css('custom.css'); ?>
 
 
   <?php echo $this->fetch('css'); ?>
@@ -42,7 +43,7 @@ $storeCodes = ['all' => 'Selecionar Todas'] + $storeCodes;
 
     <!-- Preloader -->
     <div class="preloader flex-column justify-content-center align-items-center">
-      <?php echo $this->Html->image('CakephpLte./img/aeLogo.png', ['alt' => 'CakephpLte Loho', 'class' => 'animation__shake', 'height' => "60", 'width' => "60"]); ?>
+      <?php echo $this->Html->image('logo.png', ['alt' => 'Nicolini - App Manager', 'class' => 'animation__shake', 'height' => "120"]); ?>
 
     </div>
 
@@ -201,24 +202,24 @@ $storeCodes = ['all' => 'Selecionar Todas'] + $storeCodes;
         });
     });
     </script>
-<script type="text/javascript">
-$(document).ready(function() {
-    $('.select2').select2({
-        placeholder: "Selecione uma opção", // Você pode customizar isso conforme necessário
-        allowClear: true // Permite limpar a seleção
+    <script type="text/javascript">
+    $(document).ready(function() {
+        $('.select2').select2({
+            placeholder: "Selecione uma opção", // Você pode customizar isso conforme necessário
+            allowClear: true // Permite limpar a seleção
+        });
+
+        $('.select2').on('change', function() {
+            var allSelected = $(this).find('option[value="all"]').is(':selected');
+
+            if (allSelected) {
+              $(".select2 > option").prop("selected", true);
+              $(".select2").trigger("change");
+
+            }
+        });
     });
-
-    $('.select2').on('change', function() {
-        var allSelected = $(this).find('option[value="all"]').is(':selected');
-
-        if (allSelected) {
-          $(".select2 > option").prop("selected", true);
-          $(".select2").trigger("change");
-
-        }
-    });
-});
-</script>
+    </script>
 
 
 

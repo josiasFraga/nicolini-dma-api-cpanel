@@ -164,6 +164,11 @@ return static function (RouteBuilder $routes) {
             'controller' => 'Dma',
             'action' => 'loadIncomes'
         ])->setMethods(['GET']);
+
+        $builder->connect('/product-users/index', [
+            'controller' => 'ProductUsers',
+            'action' => 'index'
+        ])->setMethods(['GET']);
         
         // Você pode adicionar mais rotas da API conforme necessário
     });
