@@ -39,9 +39,13 @@
 			</li>
 
 			<li class="nav-item">
-			<a href="<?php echo $this->Url->build('/admin/dma'); ?>" class="nav-link <?= $this->getRequest()->getParam('controller') === 'Dma' ? 'active' : '' ?>">
-				<p>- DMA's Cadastrados</p>
-			</a>
+				<a href="<?php echo $this->Url->build([
+					'controller' => 'Dma',
+					'action' => 'index',
+					'?' => ['store' => '001']
+				]); ?>" class="nav-link <?= $this->getRequest()->getParam('controller') === 'Dma' ? 'active' : '' ?>">
+					<p>- DMA's Cadastrados</p>
+				</a>
 			</li>
 
 			<li class="nav-item">

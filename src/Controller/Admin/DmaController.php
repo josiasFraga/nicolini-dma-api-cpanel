@@ -39,8 +39,28 @@ class DmaController extends AppController
         $filters = $this->request->getQuery();
         $orderField = $this->request->getQuery('sort_field', 'id'); // Campo padrão para ordenação
         $orderDirection = $this->request->getQuery('sort_order', 'asc'); // Direção padrão de ordenação
+
+        $query = $this->Dma->find()->contain([
+            'Mercadorias' => function ($q) {
+                return $q->select([
+                    'Mercadorias.cd_codigoint',
+                    'Mercadorias.tx_descricao',
+                    'Mercadorias.custotab',
+                    'Mercadorias.customed',
+                    'Mercadorias.opcusto'
+                ]);
+            }
+        ]);
     
-        $query = $this->Dma->find()->contain(['Mercadorias']);
+        if (empty($filters['month_year_accounting']) && empty($filters['date_accounting']) && empty($filters['date_movement']) && empty($filters['store'])) {
+            // Forçar o mês atual
+            $mesAtual = date('m');
+            $anoAtual = date('Y');
+            $query->where([
+                'YEAR(Dma.date_accounting)' => $anoAtual,
+                'MONTH(Dma.date_accounting)' => $mesAtual,
+            ]);
+        }
 
         // Mesmas expressões CASE
         $costCaseSql = "
@@ -145,7 +165,7 @@ class DmaController extends AppController
     
         // Passar dados para a view
         $this->set(compact('dma', 'filters', 'filtersActive', 'storeCodes'));
-    }    
+    }
     
     public function delete($id = null)
     {
@@ -167,8 +187,8 @@ class DmaController extends AppController
     
         // Capturar filtros e ordenação
         $filters = $this->request->getQuery();
-        $orderField = $filters['sort_field'] ?? 'id';
-        $orderDirection = $filters['sort_order'] ?? 'asc';
+        $orderField = $this->request->getQuery('sort_field', 'id'); // Campo padrão para ordenação
+        $orderDirection = $this->request->getQuery('sort_order', 'asc'); // Direção padrão de ordenação
     
         // Escrever no Excel os filtros
         $filterRow = 1;
@@ -195,10 +215,30 @@ class DmaController extends AppController
         $sheet->setCellValue('K' . $dataStartRow, 'Quantidade');
         $sheet->setCellValue('L' . $dataStartRow, 'Custo');
         $sheet->setCellValue('M' . $dataStartRow, 'Total');
+
+        $query = $this->Dma->find()->contain([
+            'Mercadorias' => function ($q) {
+                return $q->select([
+                    'Mercadorias.cd_codigoint',
+                    'Mercadorias.tx_descricao',
+                    'Mercadorias.custotab',
+                    'Mercadorias.customed',
+                    'Mercadorias.opcusto'
+                ]);
+            }
+        ]);
     
-        // Monta a query com a MESMA lógica de custo e total
-        $query = $this->Dma->find()->contain(['Mercadorias']);
-    
+        if (empty($filters['month_year_accounting']) && empty($filters['date_accounting']) && empty($filters['date_movement']) && empty($filters['store'])) {
+            // Forçar o mês atual
+            $mesAtual = date('m');
+            $anoAtual = date('Y');
+            $query->where([
+                'YEAR(Dma.date_accounting)' => $anoAtual,
+                'MONTH(Dma.date_accounting)' => $mesAtual,
+            ]);
+        }
+
+        // Mesmas expressões CASE
         $costCaseSql = "
             CASE
                 WHEN Dma.type = 'Entrada' THEN Dma.cost
@@ -215,10 +255,11 @@ class DmaController extends AppController
                 ELSE (Dma.cost * Dma.quantity)
             END
         ";
-    
+
         $costCaseExpr = $query->newExpr($costCaseSql);
         $totalCaseExpr = $query->newExpr($totalCaseSql);
-    
+
+        // SELECT
         $query->select([
             'Dma.id',
             'Dma.created',
@@ -230,8 +271,7 @@ class DmaController extends AppController
             'Dma.cutout_type',
             'Dma.good_code',
             'Dma.quantity',
-            // Sobrescrevendo cost
-            'cost' => $costCaseExpr,
+            'cost' => $costCaseExpr,   // sobrescrever cost
             'Mercadorias.custotab',
             'Mercadorias.customed',
             'Mercadorias.opcusto',
@@ -239,16 +279,47 @@ class DmaController extends AppController
         ]);
 
         $query->order([$orderField => $orderDirection]);
-    
-        // Filtros (igual no index)
+
+        // Aplicar filtros
         if (!empty($filters['store'])) {
             $query->where(['Dma.store_code' => $filters['store']]);
         }
-        // ... Demais filtros ...
+    
+        if (!empty($filters['created'])) {
+            $query->where(['DATE(Dma.created)' => $filters['created']]);
+        }
+    
+        if (!empty($filters['date_movement'])) {
+            $query->where(['DATE(Dma.date_movement)' => $filters['date_movement']]);
+        }
+    
+        if (!empty($filters['date_accounting'])) {
+            $query->where(['DATE(Dma.date_accounting)' => $filters['date_accounting']]);
+        }
+    
+        if (!empty($filters['good_code'])) {
+            $query->where(['Dma.good_code LIKE' => '%' . $filters['good_code'] . '%']);
+        }
+    
+        if (!empty($filters['month_year_accounting'])) {
+            list($mes, $ano) = explode("/", $filters['month_year_accounting']);
+            $query->where([
+                'YEAR(Dma.date_accounting)' => $ano,
+                'MONTH(Dma.date_accounting)' => $mes,
+            ]);
+        }
+    
+        if (!empty($filters['type'])) {
+            $query->where(['Dma.type' => $filters['type']]);
+        }
+    
         if (!empty($filters['user'])) {
             $query->where(['Dma.user LIKE' => '%' . $filters['user'] . '%']);
         }
-        // etc.
+    
+        if (!empty($filters['cost'])) {
+            $query->where(['Dma.cost >=' => (float)$filters['cost']]);
+        }
     
         // Obter todos os registros (sem paginação, geralmente) 
         // ou use pagination se quiser.
