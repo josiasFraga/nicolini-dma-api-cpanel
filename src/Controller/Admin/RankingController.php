@@ -83,7 +83,7 @@ class RankingController extends AppController
     
         $costCaseExpr = $query->newExpr($costCaseSql);
         $totalCaseExpr = $query->newExpr($totalCaseSql);
-    
+
         // SELECT com agregação
         $query->select([
             'good_code' => 'Dma.good_code',
@@ -181,19 +181,11 @@ class RankingController extends AppController
         $dataStartRow = $filterRow + 1;
     
         // Cabeçalho das colunas
-        $sheet->setCellValue('A' . $dataStartRow, 'ID');
-        $sheet->setCellValue('B' . $dataStartRow, 'Criação');
-        $sheet->setCellValue('C' . $dataStartRow, 'Loja');
-        $sheet->setCellValue('D' . $dataStartRow, 'Movimento');
-        $sheet->setCellValue('E' . $dataStartRow, 'Contabilidade');
-        $sheet->setCellValue('F' . $dataStartRow, 'Usuário');
-        $sheet->setCellValue('G' . $dataStartRow, 'Tipo');
-        $sheet->setCellValue('H' . $dataStartRow, 'Corte');
-        $sheet->setCellValue('I' . $dataStartRow, 'Código Mercadoria');
-        $sheet->setCellValue('J' . $dataStartRow, 'Descrição Mercadoria');
-        $sheet->setCellValue('K' . $dataStartRow, 'Quantidade');
-        $sheet->setCellValue('L' . $dataStartRow, 'Custo');
-        $sheet->setCellValue('M' . $dataStartRow, 'Total');
+        $sheet->setCellValue('A' . $dataStartRow, 'Código Mercadoria');
+        $sheet->setCellValue('B' . $dataStartRow, 'Descrição Mercadoria');
+        $sheet->setCellValue('C' . $dataStartRow, 'Quantidade');
+        $sheet->setCellValue('D' . $dataStartRow, 'Custo');
+        $sheet->setCellValue('E' . $dataStartRow, 'Total');
 
         $query = $this->Dma->find()->contain([
             'Mercadorias' => function ($q) {
@@ -238,24 +230,14 @@ class RankingController extends AppController
         $costCaseExpr = $query->newExpr($costCaseSql);
         $totalCaseExpr = $query->newExpr($totalCaseSql);
 
-        // SELECT
+        // SELECT com agregação
         $query->select([
-            'Dma.id',
-            'Dma.created',
-            'Dma.store_code',
-            'Dma.date_movement',
-            'Dma.date_accounting',
-            'Dma.user',
-            'Dma.type',
-            'Dma.cutout_type',
-            'Dma.good_code',
-            'Dma.quantity',
-            'cost' => $costCaseExpr,   // sobrescrever cost
-            'Mercadorias.custotab',
-            'Mercadorias.customed',
-            'Mercadorias.opcusto',
-            'total' => $totalCaseExpr,
-        ]);
+            'good_code' => 'Dma.good_code',
+            'quantity' => $query->func()->sum('Dma.quantity'),
+            'cost' => $query->func()->sum($costCaseExpr),
+            'total' => $query->func()->sum($totalCaseExpr),
+        ])
+        ->group(['Dma.good_code']); // Agrupar por good_code
 
         $query->order([$orderField => $orderDirection]);
 
@@ -307,20 +289,12 @@ class RankingController extends AppController
         // Preenchendo o Excel
         $row = $dataStartRow + 1;
         foreach ($results as $dma) {
-            $sheet->setCellValue('A' . $row, $dma->id);
-            $sheet->setCellValue('B' . $row, $dma->created->format('Y-m-d H:i:s'));
-            $sheet->setCellValue('C' . $row, $dma->store_code);
-            $sheet->setCellValue('D' . $row, $dma->date_movement->format('Y-m-d'));
-            $sheet->setCellValue('E' . $row, $dma->date_accounting->format('Y-m-d'));
-            $sheet->setCellValue('F' . $row, $dma->user);
-            $sheet->setCellValue('G' . $row, $dma->type);
-            $sheet->setCellValue('H' . $row, $dma->cutout_type);
-            $sheet->setCellValue('I' . $row, $dma->good_code);
-            $sheet->setCellValue('J' . $row, $dma->mercadoria->tx_descricao ?? '');
-            $sheet->setCellValue('K' . $row, $dma->quantity);
+            $sheet->setCellValue('A' . $row, $dma->good_code);
+            $sheet->setCellValue('B' . $row, $dma->mercadoria->tx_descricao ?? '');
+            $sheet->setCellValue('C' . $row, $dma->quantity);
             // Custo calculado ou nativo
-            $sheet->setCellValue('L' . $row, number_format(floatval($dma->cost), 2, ',', '.'));
-            $sheet->setCellValue('M' . $row, number_format(floatval($dma->total), 2, ',', '.'));
+            $sheet->setCellValue('D' . $row, number_format(floatval($dma->cost), 2, ',', '.'));
+            $sheet->setCellValue('E' . $row, number_format(floatval($dma->total), 2, ',', '.'));
             $row++;
         }
     
