@@ -16,6 +16,7 @@
 		echo $this->getRequest()->getParam('controller') === 'Results' ? 'menu-open' : '';
 		echo $this->getRequest()->getParam('controller') === 'DmaConfigurations' ? 'menu-open' : '';
 		echo $this->getRequest()->getParam('controller') === 'Costs' ? 'menu-open' : '';
+		echo $this->getRequest()->getParam('controller') === 'Ranking' ? 'menu-open' : '';
 		?>">
 		<a href="#" class="nav-link">
 			<i class="nav-icon fas fa-drumstick-bite"></i>
@@ -51,6 +52,12 @@
 			<li class="nav-item">
 			<a href="<?php echo $this->Url->build('/admin/results'); ?>" class="nav-link <?= $this->getRequest()->getParam('controller') === 'Results' ? 'active' : '' ?>">
 				<p>- Resultados</p>
+			</a>
+			</li>
+
+			<li class="nav-item">
+			<a href="<?php echo $this->Url->build('/admin/ranking?sort_field=quantity&sort_order=desc'); ?>" class="nav-link <?= $this->getRequest()->getParam('controller') === 'Ranking' ? 'active' : '' ?>">
+				<p>- Ranking</p>
 			</a>
 			</li>
 
