@@ -53,7 +53,7 @@ class RankingController extends AppController
             }
         ]);
     
-        if (empty($filters['month_year_accounting']) && empty($filters['date_start_accounting']) && empty($filters['date_end_accounting']) && empty($filters['date_movement']) && empty($filters['store'])) {
+        if (empty($filters['month_year_accounting']) && empty($filters['date_start_accounting']) && empty($filters['date_end_accounting']) && empty($filters['date_start_movement']) && empty($filters['date_end_movement']) && empty($filters['store'])) {
             // Forçar o mês atual
             $mesAtual = date('m');
             $anoAtual = date('Y');
@@ -103,9 +103,14 @@ class RankingController extends AppController
         if (!empty($filters['created'])) {
             $query->where(['DATE(Dma.created)' => $filters['created']]);
         }
-    
-        if (!empty($filters['date_movement'])) {
-            $query->where(['DATE(Dma.date_movement)' => $filters['date_movement']]);
+
+        if (!empty($filters['date_start_movement']) || !empty($filters['date_end_movement'])) {
+            if (!empty($filters['date_start_movement'])) {
+                $query->where(['Dma.date_accounting >=' => $filters['date_start_movement']]);
+            }
+            if (!empty($filters['date_end_movement'])) {
+                $query->where(['Dma.date_accounting <=' => $filters['date_end_movement']]);
+            }
         }
     
         if (!empty($filters['date_start_accounting']) || !empty($filters['date_end_accounting'])) {
@@ -204,7 +209,7 @@ class RankingController extends AppController
             }
         ]);
     
-        if (empty($filters['month_year_accounting']) && empty($filters['date_start_accounting']) && empty($filters['date_end_accounting']) && empty($filters['date_movement']) && empty($filters['store'])) {
+        if (empty($filters['month_year_accounting']) && empty($filters['date_start_accounting']) && empty($filters['date_end_accounting']) && empty($filters['date_start_movement']) && empty($filters['date_end_movement']) && empty($filters['store'])) {
             // Forçar o mês atual
             $mesAtual = date('m');
             $anoAtual = date('Y');
@@ -254,9 +259,14 @@ class RankingController extends AppController
         if (!empty($filters['created'])) {
             $query->where(['DATE(Dma.created)' => $filters['created']]);
         }
-    
-        if (!empty($filters['date_movement'])) {
-            $query->where(['DATE(Dma.date_movement)' => $filters['date_movement']]);
+
+        if (!empty($filters['date_start_movement']) || !empty($filters['date_end_movement'])) {
+            if (!empty($filters['date_start_movement'])) {
+                $query->where(['Dma.date_accounting >=' => $filters['date_start_movement']]);
+            }
+            if (!empty($filters['date_end_movement'])) {
+                $query->where(['Dma.date_accounting <=' => $filters['date_end_movement']]);
+            }
         }
     
         if (!empty($filters['date_start_accounting']) || !empty($filters['date_end_accounting'])) {
