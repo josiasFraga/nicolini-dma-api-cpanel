@@ -114,8 +114,12 @@ $this->assign('title', 'DMA');
 						<input type="date" class="form-control" id="dateMovement" name="date_movement" value="<?= h($filters['date_movement'] ?? '') ?>">
 					</div>
 					<div class="form-group">
-						<label for="dateAccounting">Data de Contabilização</label>
-						<input type="date" class="form-control" id="dateAccounting" name="date_accounting" value="<?= h($filters['date_accounting'] ?? '') ?>">
+						<label for="dateStartAccounting">Início de Contabilização</label>
+						<input type="date" class="form-control" id="dateStartAccounting" name="date_start_accounting" value="<?= h($filters['date_start_accounting'] ?? '') ?>">
+					</div>
+					<div class="form-group">
+						<label for="dateEndAccounting">Início de Contabilização</label>
+						<input type="date" class="form-control" id="dateEndAccounting" name="date_end_accounting" value="<?= h($filters['date_end_accounting'] ?? '') ?>">
 					</div>
 					<div class="form-group">
 						<label for="monthYearAccounting">Mês e Ano de Contabilização</label>

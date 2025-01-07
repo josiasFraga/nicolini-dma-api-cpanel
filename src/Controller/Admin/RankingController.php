@@ -53,7 +53,7 @@ class RankingController extends AppController
             }
         ]);
     
-        if (empty($filters['month_year_accounting']) && empty($filters['date_accounting']) && empty($filters['date_movement']) && empty($filters['store'])) {
+        if (empty($filters['month_year_accounting']) && empty($filters['date_start_accounting']) && empty($filters['date_end_accounting']) && empty($filters['date_movement']) && empty($filters['store'])) {
             // Forçar o mês atual
             $mesAtual = date('m');
             $anoAtual = date('Y');
@@ -108,8 +108,13 @@ class RankingController extends AppController
             $query->where(['DATE(Dma.date_movement)' => $filters['date_movement']]);
         }
     
-        if (!empty($filters['date_accounting'])) {
-            $query->where(['DATE(Dma.date_accounting)' => $filters['date_accounting']]);
+        if (!empty($filters['date_start_accounting']) || !empty($filters['date_end_accounting'])) {
+            if (!empty($filters['date_start_accounting'])) {
+                $query->where(['Dma.date_accounting >=' => $filters['date_start_accounting']]);
+            }
+            if (!empty($filters['date_end_accounting'])) {
+                $query->where(['Dma.date_accounting <=' => $filters['date_end_accounting']]);
+            }
         }
     
         if (!empty($filters['good_code'])) {
@@ -199,7 +204,7 @@ class RankingController extends AppController
             }
         ]);
     
-        if (empty($filters['month_year_accounting']) && empty($filters['date_accounting']) && empty($filters['date_movement']) && empty($filters['store'])) {
+        if (empty($filters['month_year_accounting']) && empty($filters['date_start_accounting']) && empty($filters['date_end_accounting']) && empty($filters['date_movement']) && empty($filters['store'])) {
             // Forçar o mês atual
             $mesAtual = date('m');
             $anoAtual = date('Y');
@@ -254,8 +259,13 @@ class RankingController extends AppController
             $query->where(['DATE(Dma.date_movement)' => $filters['date_movement']]);
         }
     
-        if (!empty($filters['date_accounting'])) {
-            $query->where(['DATE(Dma.date_accounting)' => $filters['date_accounting']]);
+        if (!empty($filters['date_start_accounting']) || !empty($filters['date_end_accounting'])) {
+            if (!empty($filters['date_start_accounting'])) {
+                $query->where(['Dma.date_accounting >=' => $filters['date_start_accounting']]);
+            }
+            if (!empty($filters['date_end_accounting'])) {
+                $query->where(['Dma.date_accounting <=' => $filters['date_end_accounting']]);
+            }
         }
     
         if (!empty($filters['good_code'])) {
