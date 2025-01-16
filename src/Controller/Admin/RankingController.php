@@ -66,18 +66,16 @@ class RankingController extends AppController
         // Mesmas expressões CASE
         $costCaseSql = "
             CASE
-                WHEN Dma.type = 'Entrada' THEN Dma.cost
-                WHEN Dma.type = 'Saida' AND Mercadorias.opcusto = 'T' THEN Mercadorias.custotab
-                WHEN Dma.type = 'Saida' AND Mercadorias.opcusto <> 'T' THEN Mercadorias.customed
-                ELSE Dma.cost
+                WHEN Mercadorias.opcusto = 'T' THEN Mercadorias.custotab
+                WHEN Mercadorias.opcusto <> 'T' THEN Mercadorias.customed
+                ELSE 0
             END
         ";
         $totalCaseSql = "
             CASE
-                WHEN Dma.type = 'Entrada' THEN (Dma.cost * Dma.quantity)
-                WHEN Dma.type = 'Saida' AND Mercadorias.opcusto = 'T' THEN (Mercadorias.custotab * Dma.quantity)
-                WHEN Dma.type = 'Saida' AND Mercadorias.opcusto <> 'T' THEN (Mercadorias.customed * Dma.quantity)
-                ELSE (Dma.cost * Dma.quantity)
+                WHEN Mercadorias.opcusto = 'T' THEN (Mercadorias.custotab * Dma.quantity)
+                WHEN Mercadorias.opcusto <> 'T' THEN (Mercadorias.customed * Dma.quantity)
+                ELSE 0
             END
         ";
     
@@ -222,18 +220,16 @@ class RankingController extends AppController
         // Mesmas expressões CASE
         $costCaseSql = "
             CASE
-                WHEN Dma.type = 'Entrada' THEN Dma.cost
-                WHEN Dma.type = 'Saida' AND Mercadorias.opcusto = 'T' THEN Mercadorias.custotab
-                WHEN Dma.type = 'Saida' AND Mercadorias.opcusto <> 'T' THEN Mercadorias.customed
-                ELSE Dma.cost
+                WHEN Mercadorias.opcusto = 'T' THEN Mercadorias.custotab
+                WHEN Mercadorias.opcusto <> 'T' THEN Mercadorias.customed
+                ELSE 0
             END
         ";
         $totalCaseSql = "
             CASE
-                WHEN Dma.type = 'Entrada' THEN (Dma.cost * Dma.quantity)
-                WHEN Dma.type = 'Saida' AND Mercadorias.opcusto = 'T' THEN (Mercadorias.custotab * Dma.quantity)
-                WHEN Dma.type = 'Saida' AND Mercadorias.opcusto <> 'T' THEN (Mercadorias.customed * Dma.quantity)
-                ELSE (Dma.cost * Dma.quantity)
+                WHEN Mercadorias.opcusto = 'T' THEN (Mercadorias.custotab * Dma.quantity)
+                WHEN Mercadorias.opcusto <> 'T' THEN (Mercadorias.customed * Dma.quantity)
+                ELSE 0
             END
         ";
 

@@ -184,7 +184,7 @@ class ResultsController extends AppController
                     $cutCode = str_pad($cutCode, 7, "0", STR_PAD_LEFT);
 
                     // Pega o custo do cálculo, senão pega o custo do produto na tabela de marcadorias
-                    if ( $dma['ended'] === 'Y' ) {
+                    if ( 1 == 2) {
                         $valor_mercadoria = $dma_cost;
                     } else {
 
@@ -424,7 +424,7 @@ class ResultsController extends AppController
                 $cutCode = str_pad($cutCode, 7, "0", STR_PAD_LEFT);
 
                 // Pega o custo do cálculo, senão pega o custo do produto na tabela de marcadorias
-                if ( $dma['ended'] === 'Y' ) {
+                if ( 1 == 2) {
                     $valor_mercadoria = $dma_cost;
                 } else {
 

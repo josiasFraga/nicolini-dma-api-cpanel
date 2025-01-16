@@ -51,8 +51,8 @@ class DmaController extends AppController
                 ]);
             }
         ]);
-    
-        if (empty($filters['month_year_accounting']) && empty($filters['date_accounting']) && empty($filters['date_movement']) && empty($filters['store'])) {
+
+        if (empty($filters['month_year_accounting']) && empty($filters['date_start_accounting']) && empty($filters['date_end_accounting']) && empty($filters['date_start_movement']) && empty($filters['date_end_movement']) && empty($filters['store'])) {
             // Forçar o mês atual
             $mesAtual = date('m');
             $anoAtual = date('Y');
@@ -65,18 +65,16 @@ class DmaController extends AppController
         // Mesmas expressões CASE
         $costCaseSql = "
             CASE
-                WHEN Dma.type = 'Entrada' THEN Dma.cost
-                WHEN Dma.type = 'Saida' AND Mercadorias.opcusto = 'T' THEN Mercadorias.custotab
-                WHEN Dma.type = 'Saida' AND Mercadorias.opcusto <> 'T' THEN Mercadorias.customed
-                ELSE Dma.cost
+                WHEN Mercadorias.opcusto = 'T' THEN Mercadorias.custotab
+                WHEN Mercadorias.opcusto <> 'T' THEN Mercadorias.customed
+                ELSE 0
             END
         ";
         $totalCaseSql = "
             CASE
-                WHEN Dma.type = 'Entrada' THEN (Dma.cost * Dma.quantity)
-                WHEN Dma.type = 'Saida' AND Mercadorias.opcusto = 'T' THEN (Mercadorias.custotab * Dma.quantity)
-                WHEN Dma.type = 'Saida' AND Mercadorias.opcusto <> 'T' THEN (Mercadorias.customed * Dma.quantity)
-                ELSE (Dma.cost * Dma.quantity)
+                WHEN Mercadorias.opcusto = 'T' THEN (Mercadorias.custotab * Dma.quantity)
+                WHEN Mercadorias.opcusto <> 'T' THEN (Mercadorias.customed * Dma.quantity)
+                ELSE 0
             END
         ";
 
@@ -112,13 +110,23 @@ class DmaController extends AppController
         if (!empty($filters['created'])) {
             $query->where(['DATE(Dma.created)' => $filters['created']]);
         }
-    
-        if (!empty($filters['date_movement'])) {
-            $query->where(['DATE(Dma.date_movement)' => $filters['date_movement']]);
+
+        if (!empty($filters['date_start_movement']) || !empty($filters['date_end_movement'])) {
+            if (!empty($filters['date_start_movement'])) {
+                $query->where(['Dma.date_accounting >=' => $filters['date_start_movement']]);
+            }
+            if (!empty($filters['date_end_movement'])) {
+                $query->where(['Dma.date_accounting <=' => $filters['date_end_movement']]);
+            }
         }
     
-        if (!empty($filters['date_accounting'])) {
-            $query->where(['DATE(Dma.date_accounting)' => $filters['date_accounting']]);
+        if (!empty($filters['date_start_accounting']) || !empty($filters['date_end_accounting'])) {
+            if (!empty($filters['date_start_accounting'])) {
+                $query->where(['Dma.date_accounting >=' => $filters['date_start_accounting']]);
+            }
+            if (!empty($filters['date_end_accounting'])) {
+                $query->where(['Dma.date_accounting <=' => $filters['date_end_accounting']]);
+            }
         }
     
         if (!empty($filters['good_code'])) {
@@ -228,7 +236,7 @@ class DmaController extends AppController
             }
         ]);
     
-        if (empty($filters['month_year_accounting']) && empty($filters['date_accounting']) && empty($filters['date_movement']) && empty($filters['store'])) {
+        if (empty($filters['month_year_accounting']) && empty($filters['date_start_accounting']) && empty($filters['date_end_accounting']) && empty($filters['date_start_movement']) && empty($filters['date_end_movement']) && empty($filters['store'])) {
             // Forçar o mês atual
             $mesAtual = date('m');
             $anoAtual = date('Y');
@@ -241,18 +249,16 @@ class DmaController extends AppController
         // Mesmas expressões CASE
         $costCaseSql = "
             CASE
-                WHEN Dma.type = 'Entrada' THEN Dma.cost
-                WHEN Dma.type = 'Saida' AND Mercadorias.opcusto = 'T' THEN Mercadorias.custotab
-                WHEN Dma.type = 'Saida' AND Mercadorias.opcusto <> 'T' THEN Mercadorias.customed
-                ELSE Dma.cost
+                WHEN Mercadorias.opcusto = 'T' THEN Mercadorias.custotab
+                WHEN Mercadorias.opcusto <> 'T' THEN Mercadorias.customed
+                ELSE 0
             END
         ";
         $totalCaseSql = "
             CASE
-                WHEN Dma.type = 'Entrada' THEN (Dma.cost * Dma.quantity)
-                WHEN Dma.type = 'Saida' AND Mercadorias.opcusto = 'T' THEN (Mercadorias.custotab * Dma.quantity)
-                WHEN Dma.type = 'Saida' AND Mercadorias.opcusto <> 'T' THEN (Mercadorias.customed * Dma.quantity)
-                ELSE (Dma.cost * Dma.quantity)
+                Mercadorias.opcusto = 'T' THEN (Mercadorias.custotab * Dma.quantity)
+                Mercadorias.opcusto <> 'T' THEN (Mercadorias.customed * Dma.quantity)
+                ELSE 0
             END
         ";
 
@@ -288,13 +294,23 @@ class DmaController extends AppController
         if (!empty($filters['created'])) {
             $query->where(['DATE(Dma.created)' => $filters['created']]);
         }
-    
-        if (!empty($filters['date_movement'])) {
-            $query->where(['DATE(Dma.date_movement)' => $filters['date_movement']]);
+
+        if (!empty($filters['date_start_movement']) || !empty($filters['date_end_movement'])) {
+            if (!empty($filters['date_start_movement'])) {
+                $query->where(['Dma.date_accounting >=' => $filters['date_start_movement']]);
+            }
+            if (!empty($filters['date_end_movement'])) {
+                $query->where(['Dma.date_accounting <=' => $filters['date_end_movement']]);
+            }
         }
     
-        if (!empty($filters['date_accounting'])) {
-            $query->where(['DATE(Dma.date_accounting)' => $filters['date_accounting']]);
+        if (!empty($filters['date_start_accounting']) || !empty($filters['date_end_accounting'])) {
+            if (!empty($filters['date_start_accounting'])) {
+                $query->where(['Dma.date_accounting >=' => $filters['date_start_accounting']]);
+            }
+            if (!empty($filters['date_end_accounting'])) {
+                $query->where(['Dma.date_accounting <=' => $filters['date_end_accounting']]);
+            }
         }
     
         if (!empty($filters['good_code'])) {
