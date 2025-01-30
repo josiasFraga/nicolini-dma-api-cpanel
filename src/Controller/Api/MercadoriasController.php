@@ -28,6 +28,7 @@ class MercadoriasController extends AppController
         $this->Authorization->skipAuthorization();
 
         $store_code = $this->request->getQuery('store_code');
+        $app_product_code = $this->request->getQuery('app_product_code');
 
         if ( !$store_code ) {
 
@@ -37,25 +38,80 @@ class MercadoriasController extends AppController
             ]);
 
         }
+
+        if ( empty($app_product_code) ) {
+            $app_product_code = 1;
+        }
         
         $status = 'ok';
 
-        $this->loadModel('ExpectedYield');
+        $mercadorias = $this->getProducts($app_product_code, $store_code);
 
-        $mains = $this->ExpectedYield->find('list', [
-            'keyField' => 'id',
-            'valueField' => 'good_code'
-        ])
-        ->where(['main' => 'Y'])
-        ->toArray();
+        
+        $this->set([
+            'status' => $status,
+            'data' => $mercadorias
+        ]);
+
+        $this->viewBuilder()->setOption('serialize', ['status', 'data']);
+    }
+
+    private function getProducts($app_product_code, $store_code) {
+
+        $conditions = [];
+
+        if ( $app_product_code == 1 ) {// Açougue
+
+            $this->loadModel('ExpectedYield');
+    
+            $mains = $this->ExpectedYield->find('list', [
+                'keyField' => 'id',
+                'valueField' => 'good_code'
+            ])
+            ->where(['main' => 'Y'])
+            ->toArray();
+
+            $conditions = [
+                'Mercadorias.secao' => 17,
+                'Mercadorias.grupo IN' => [258,259,261],
+                'MercadoriasLojas.loja' => $store_code,
+                'geraconsumo' => '0'
+            ];
+
+            $additional_conditions = [
+                'OR' => [
+                    'MercadoriasLojas.ltmix' => 'A',
+                    'AND' => [
+                        'OR' => [
+                            'MercadoriasLojas.ltmix' => 'R',
+                            'MercadoriasLojas.ltmix' => 'S'
+                        ],
+                        'MercadoriasLojas.estatual >' => 0
+                    ]
+                ]
+            ];
+
+        } else if ( $app_product_code == 2 ) {//Horti
+
+            $conditions = [
+                'Mercadorias.secao IN' => [27, 41, 43, 44, 45],
+                'MercadoriasLojas.loja' => $store_code,
+            ];
+
+            $additional_conditions = [];
+
+            $this->loadModel('DmaProduceSectionMainGoods');
+    
+            $mains = array_values($this->DmaProduceSectionMainGoods->find('list', [
+                'keyField' => 'id',
+                'valueField' => 'good_code'
+            ])
+            ->toArray());
+
+        }
 
         $mercadorias = $this->Mercadorias->find('all')
-        ->where([
-            'Mercadorias.secao' => 17,
-            'Mercadorias.grupo IN' => [258,259,261],
-            'MercadoriasLojas.loja' => $store_code,
-            'geraconsumo' => '0'
-        ])
+        ->where($conditions)
         ->select([
             'cd_codigoean',
             'cd_codigoint',
@@ -72,37 +128,22 @@ class MercadoriasController extends AppController
             ['MercadoriasLojas' => 'wms_mercadorias_lojas'],
             ['Mercadorias.cd_codigoint = MercadoriasLojas.codigoint']
         )
-        ->andWhere([
-            'OR' => [
-                'MercadoriasLojas.ltmix' => 'A',
-                'AND' => [
-                    'OR' => [
-                        'MercadoriasLojas.ltmix' => 'R',
-                        'MercadoriasLojas.ltmix' => 'S'
-                    ],
-                    'MercadoriasLojas.estatual >' => 0
-                ]
-            ]
-        ])
+        //->andWhere($additional_conditions)
         ->limit(1000)
         ->toArray();
 
-        foreach( $mercadorias as $key => $mercadoria ){
-            $mercadorias[$key]['main'] = "N";
-
-            if ( in_array((int)$mercadoria->cd_codigoint, $mains) ) {
-                $mercadorias[$key]['main'] = "Y";
-                
+        if ( !empty($mains) ) {
+            foreach( $mercadorias as $key => $mercadoria ){
+                $mercadorias[$key]['main'] = "N";
+    
+                if ( in_array((int)$mercadoria->cd_codigoint, $mains) ) {
+                    $mercadorias[$key]['main'] = "Y";
+                }
             }
         }
 
-        
-        $this->set([
-            'status' => $status,
-            'data' => $mercadorias
-        ]);
+        return $mercadorias;
 
-        $this->viewBuilder()->setOption('serialize', ['status', 'data']);
     }
 
     /**

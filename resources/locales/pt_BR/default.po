@@ -171,3 +171,6 @@ msgstr "Osso a Descarte"
 
 msgid "User Login"
 msgstr "Usuário"
+
+msgid "Good Description"
+msgstr "Produto"

@@ -1,0 +1,26 @@
+ALTER TABLE `dma`
+	ADD COLUMN `app_product_id` INT NOT NULL AFTER `modified`,
+	ADD CONSTRAINT `FK_dma_app_products` FOREIGN KEY (`app_product_id`) REFERENCES `app_products` (`id`) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+UPDATE dma SET dma.app_product_id = 1
+
+
+CREATE TABLE `dma_produce_section_main_goods` (
+	`id` INT NOT NULL AUTO_INCREMENT,
+	`good_code` VARCHAR(20) NOT NULL COLLATE 'latin1_swedish_ci',
+	`good_description` VARCHAR(50) NOT NULL COLLATE 'latin1_swedish_ci',
+	PRIMARY KEY (`id`) USING BTREE,
+	UNIQUE INDEX `good_code` (`good_code`) USING BTREE
+)
+COLLATE='latin1_swedish_ci'
+ENGINE=MyISAM
+;
+
+
+ALTER TABLE `dma`
+	CHANGE COLUMN `type` `type` ENUM('Entrada','Saida','Producao','Quebra') NOT NULL COLLATE 'utf8mb4_0900_ai_ci' AFTER `user`;
+
+
+ALTER TABLE `dma`
+	CHANGE COLUMN `app_product_id` `app_product_id` INT NOT NULL DEFAULT '1' AFTER `modified`;
+

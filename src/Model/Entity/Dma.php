@@ -35,6 +35,7 @@ class Dma extends Entity
     protected $_accessible = [
         'created' => true,
         'modified' => true,
+        'app_product_id' => true,
         'store_code' => true,
         'date_movement' => true,
         'date_accounting' => true,

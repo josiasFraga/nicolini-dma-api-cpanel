@@ -40,12 +40,13 @@ $this->assign('title', 'Adicionar código de recorte');
                   'OSSO A DESCARTE' => 'Osso a Descarte',
                 ];
 
-                // Campos do formulário
-                echo $this->Form->control('store_code', [
-                    'type' => 'select',
-                    'options' => $storeCodes,
-                    'label' => 'Código da Loja',
-                ]);
+				echo $this->Form->control('store_code', [
+					'type' => 'select',
+					'multiple' => true, // Permite seleção múltipla
+					'options' => $storeCodes, // Variável que contém as lojas disponíveis
+					'class' => 'form-control select2'
+				]);
+
                 echo $this->Form->control('cutout_code');
                 echo $this->Form->control('cutout_type', [
                     'type' => 'select',

@@ -169,6 +169,26 @@ return static function (RouteBuilder $routes) {
             'controller' => 'ProductUsers',
             'action' => 'index'
         ])->setMethods(['GET']);
+
+        $builder->connect('/dma/save-production', [
+            'controller' => 'Dma',
+            'action' => 'saveProduction'
+        ])->setMethods(['POST']);
+
+        $builder->connect('/dma/load-productions', [
+            'controller' => 'Dma',
+            'action' => 'loadProductions'
+        ])->setMethods(['GET']);
+
+        $builder->connect('/dma/save-discrepancy', [
+            'controller' => 'Dma',
+            'action' => 'saveDiscrepancy'
+        ])->setMethods(['POST']);
+
+        $builder->connect('/dma/load-discrepancies', [
+            'controller' => 'Dma',
+            'action' => 'loadDiscrepancies'
+        ])->setMethods(['GET']);
         
         // Você pode adicionar mais rotas da API conforme necessário
     });

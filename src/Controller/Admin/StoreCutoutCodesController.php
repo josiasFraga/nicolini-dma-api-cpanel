@@ -91,13 +91,38 @@ class StoreCutoutCodesController extends AppController
                 $dados['percent_ad_cm'] = 0;
             }
     
-            $storeCutoutCode = $this->StoreCutoutCodes->patchEntity($storeCutoutCode, $dados);
-            if ($this->StoreCutoutCodes->save($storeCutoutCode)) {
-                $this->Flash->success(__('The store cutout code has been saved.'));
-    
-                return $this->redirect(['action' => 'index']);
+            // Verifica se store_code é um array
+            if (!empty($dados['store_code']) && is_array($dados['store_code'])) {
+                $registros = [];
+
+                foreach ($dados['store_code'] as $storeCode) {
+                    $storeCutoutCode = $this->StoreCutoutCodes->newEmptyEntity();
+
+                    // Clona os dados para evitar sobreposição de valores
+                    $registro = $dados;
+                    $registro['store_code'] = $storeCode; // Define a loja para este registro
+                    
+                    // Regras condicionais para os campos
+                    if ($registro['cutout_type'] === 'PRIMEIRA' || $registro['cutout_type'] === 'SEGUNDA') {
+                        $registro['atribui_cm_rs'] = "";
+                    } else {
+                        $registro['percent_ad_cm'] = 0;
+                    }
+
+                    // Popula a entidade
+                    $registros[] = $this->StoreCutoutCodes->patchEntity($storeCutoutCode, $registro);
+                }
+
+                // Salva todos os registros de uma vez
+                if ($this->StoreCutoutCodes->saveMany($registros)) {
+                    $this->Flash->success(__('Os códigos de corte foram salvos com sucesso.'));
+                    return $this->redirect(['action' => 'index']);
+                }
+
+                $this->Flash->error(__('Erro ao salvar os registros. Tente novamente.'));
+            } else {
+                $this->Flash->error(__('Selecione pelo menos uma loja.'));
             }
-            $this->Flash->error(__('The store cutout code could not be saved. Please, try again.'));
         }
         $this->set(compact('storeCutoutCode'));
     }

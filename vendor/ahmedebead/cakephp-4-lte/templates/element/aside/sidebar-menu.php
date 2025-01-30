@@ -12,7 +12,7 @@
 		<li class="nav-item <?php 
 		echo $this->getRequest()->getParam('controller') === 'StoreCutoutCodes' ? 'menu-open' : ''; 
 		echo $this->getRequest()->getParam('controller') === 'ExpectedYield' ? 'menu-open' : '';
-		echo $this->getRequest()->getParam('controller') === 'Dma' ? 'menu-open' : '';
+		echo $this->getRequest()->getParam('controller') === 'Dma' && $this->getRequest()->getParam('action') === 'index' ? 'menu-open' : '';
 		echo $this->getRequest()->getParam('controller') === 'Results' ? 'menu-open' : '';
 		echo $this->getRequest()->getParam('controller') === 'DmaConfigurations' ? 'menu-open' : '';
 		echo $this->getRequest()->getParam('controller') === 'Costs' ? 'menu-open' : '';
@@ -44,7 +44,7 @@
 					'controller' => 'Dma',
 					'action' => 'index',
 					'?' => ['store' => '001']
-				]); ?>" class="nav-link <?= $this->getRequest()->getParam('controller') === 'Dma' ? 'active' : '' ?>">
+				]); ?>" class="nav-link <?= $this->getRequest()->getParam('controller') === 'Dma' && $this->getRequest()->getParam('action') === 'index' ? 'active' : '' ?>">
 					<p>- DMA's Cadastrados</p>
 				</a>
 			</li>
@@ -71,6 +71,38 @@
 			<a href="<?php echo $this->Url->build('/admin/costs'); ?>" class="nav-link <?= $this->getRequest()->getParam('controller') === 'Costs' ? 'active' : '' ?>">
 				<p>- Custos</p>
 			</a>
+			</li>
+
+		</ul>
+		</li>
+
+		<li class="nav-item <?php 
+		echo $this->getRequest()->getParam('controller') === 'ProduceSectionMainProducts' ? 'menu-open' : ''; 
+		echo $this->getRequest()->getParam('controller') === 'Dma' && $this->getRequest()->getParam('action') === 'horti' ? 'menu-open' : '';
+		?>">
+		<a href="#" class="nav-link">
+			<i class="nav-icon fas fa-carrot"></i>
+			<p>
+			DMA Horti
+			<i class="right fas fa-angle-left"></i>
+			</p>
+		</a>
+		<ul class="nav nav-treeview">
+
+			<li class="nav-item">
+			<a href="<?php echo $this->Url->build('/admin/produce-section-main-products'); ?>" class="nav-link <?= $this->getRequest()->getParam('controller') === 'ProduceSectionMainProducts' ? 'active' : '' ?>">
+				<p>- Produtos Principais</p>
+			</a>
+			</li>
+
+			<li class="nav-item">
+				<a href="<?php echo $this->Url->build([
+					'controller' => 'Dma',
+					'action' => 'horti',
+					'?' => ['store' => '001']
+				]); ?>" class="nav-link <?= $this->getRequest()->getParam('controller') === 'Dma' && $this->getRequest()->getParam('action') === 'horti' ? 'active' : '' ?>">
+					<p>- DMA's Cadastrados</p>
+				</a>
 			</li>
 
 		</ul>
