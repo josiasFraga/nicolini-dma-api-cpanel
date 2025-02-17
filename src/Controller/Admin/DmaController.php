@@ -288,6 +288,118 @@ class DmaController extends AppController
         // Passar dados para a view
         $this->set(compact('dma', 'filters', 'filtersActive', 'storeCodes'));
     }
+
+    public function padaria()
+    {
+        // Capturar parâmetros de filtro e ordenação da URL
+        $filters = $this->request->getQuery();
+        $orderField = $this->request->getQuery('sort_field', 'id'); // Campo padrão para ordenação
+        $orderDirection = $this->request->getQuery('sort_order', 'asc'); // Direção padrão de ordenação
+
+        $query = $this->Dma->find()->contain([
+            'Mercadorias' => function ($q) {
+                return $q->select([
+                    'Mercadorias.tx_descricao',
+                ]);
+            }
+        ]);
+
+        if (empty($filters['month_year_accounting']) && empty($filters['date_start_accounting']) && empty($filters['date_end_accounting']) && empty($filters['date_start_movement']) && empty($filters['date_end_movement']) && empty($filters['store'])) {
+            // Forçar o mês atual
+            $mesAtual = date('m');
+            $anoAtual = date('Y');
+            $query->where([
+                'YEAR(Dma.date_accounting)' => $anoAtual,
+                'MONTH(Dma.date_accounting)' => $mesAtual,
+            ]);
+        }
+
+        // SELECT
+        $query->select([
+            'Dma.id',
+            'Dma.created',
+            'Dma.store_code',
+            'Dma.date_movement',
+            'Dma.date_accounting',
+            'Dma.user',
+            'Dma.type',
+            'Dma.cost',
+            'Dma.good_code',
+            'Dma.quantity'
+        ]);
+
+        $query->order([$orderField => $orderDirection]);
+
+        // Aplicar filtros
+        if (!empty($filters['store'])) {
+            $query->where(['Dma.store_code' => $filters['store']]);
+        }
+    
+        if (!empty($filters['created'])) {
+            $query->where(['DATE(Dma.created)' => $filters['created']]);
+        }
+
+        if (!empty($filters['date_start_movement']) || !empty($filters['date_end_movement'])) {
+            if (!empty($filters['date_start_movement'])) {
+                $query->where(['Dma.date_accounting >=' => $filters['date_start_movement']]);
+            }
+            if (!empty($filters['date_end_movement'])) {
+                $query->where(['Dma.date_accounting <=' => $filters['date_end_movement']]);
+            }
+        }
+    
+        if (!empty($filters['date_start_accounting']) || !empty($filters['date_end_accounting'])) {
+            if (!empty($filters['date_start_accounting'])) {
+                $query->where(['Dma.date_accounting >=' => $filters['date_start_accounting']]);
+            }
+            if (!empty($filters['date_end_accounting'])) {
+                $query->where(['Dma.date_accounting <=' => $filters['date_end_accounting']]);
+            }
+        }
+    
+        if (!empty($filters['good_code'])) {
+            $query->where(['Dma.good_code LIKE' => '%' . $filters['good_code'] . '%']);
+        }
+    
+        if (!empty($filters['month_year_accounting'])) {
+            list($mes, $ano) = explode("/", $filters['month_year_accounting']);
+            $query->where([
+                'YEAR(Dma.date_accounting)' => $ano,
+                'MONTH(Dma.date_accounting)' => $mes,
+            ]);
+        }
+    
+        if (!empty($filters['type'])) {
+            $query->where(['Dma.type' => $filters['type']]);
+        }
+    
+        if (!empty($filters['user'])) {
+            $query->where(['Dma.user LIKE' => '%' . $filters['user'] . '%']);
+        }
+ 
+        $query->where(['Dma.app_product_id' => 3]);
+    
+        // Configurar paginação
+        $this->paginate = [
+            'limit' => 20,
+            'order' => [$orderField => $orderDirection],
+        ];
+    
+        $dma = $this->paginate($query);
+    
+        // Determinar se há filtros ativos
+        $filtersActive = !empty(array_filter($filters));
+    
+        // Gerar lista de lojas
+        $storeCodes = [];
+        for ($i = 1; $i <= 18; $i++) {
+            $storeCodes[sprintf('%03d', $i)] = sprintf('%03d', $i);
+        }
+        $storeCodes['ACC'] = 'ACC'; // Adicionar loja adicional, se necessário
+    
+        // Passar dados para a view
+        $this->set(compact('dma', 'filters', 'filtersActive', 'storeCodes'));
+    }
     
     public function delete($id = null)
     {
@@ -301,8 +413,10 @@ class DmaController extends AppController
 
         if ( $dma->app_product_id == 1 ) {
             return $this->redirect(['action' => 'index']);
-        } else {
+        } else if ( $dma->app_product_id == 2 ) {
             return $this->redirect(['action' => 'horti']);
+        } else {
+            return $this->redirect(['action' => 'padaria']);
         }
     }
 
@@ -648,6 +762,163 @@ class DmaController extends AppController
             ->withHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
             ->withFile($tempFile, ['download' => true, 'delete' => true]);
     }
+
+    public function exportPadaria()
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
     
+        // Capturar filtros e ordenação
+        $filters = $this->request->getQuery();
+        $orderField = $this->request->getQuery('sort_field', 'id'); // Campo padrão para ordenação
+        $orderDirection = $this->request->getQuery('sort_order', 'asc'); // Direção padrão de ordenação
+    
+        // Escrever no Excel os filtros
+        $filterRow = 1;
+        foreach ($filters as $key => $value) {
+            if (!empty($value) && !in_array($key, ['sort_field','sort_order'])) {
+                $sheet->setCellValue('A' . $filterRow, ucfirst($key) . ':');
+                $sheet->setCellValue('B' . $filterRow, $value);
+                $filterRow++;
+            }
+        }
+        $dataStartRow = $filterRow + 1;
+    
+        // Cabeçalho das colunas
+        $sheet->setCellValue('A' . $dataStartRow, 'ID');
+        $sheet->setCellValue('B' . $dataStartRow, 'Criação');
+        $sheet->setCellValue('C' . $dataStartRow, 'Loja');
+        $sheet->setCellValue('D' . $dataStartRow, 'Movimento');
+        $sheet->setCellValue('E' . $dataStartRow, 'Contabilidade');
+        $sheet->setCellValue('F' . $dataStartRow, 'Usuário');
+        $sheet->setCellValue('G' . $dataStartRow, 'Tipo');
+        $sheet->setCellValue('H' . $dataStartRow, 'Código Mercadoria');
+        $sheet->setCellValue('I' . $dataStartRow, 'Descrição Mercadoria');
+        $sheet->setCellValue('J' . $dataStartRow, 'Quantidade');
+        $sheet->setCellValue('K' . $dataStartRow, 'Custo');
+        $sheet->setCellValue('L' . $dataStartRow, 'Total');
+
+        $query = $this->Dma->find()->contain([
+            'Mercadorias' => function ($q) {
+                return $q->select([
+                    'Mercadorias.tx_descricao',
+                ]);
+            }
+        ]);
+    
+        if (empty($filters['month_year_accounting']) && empty($filters['date_start_accounting']) && empty($filters['date_end_accounting']) && empty($filters['date_start_movement']) && empty($filters['date_end_movement']) && empty($filters['store'])) {
+            // Forçar o mês atual
+            $mesAtual = date('m');
+            $anoAtual = date('Y');
+            $query->where([
+                'YEAR(Dma.date_accounting)' => $anoAtual,
+                'MONTH(Dma.date_accounting)' => $mesAtual,
+            ]);
+        }
+
+        // SELECT
+        $query->select([
+            'Dma.id',
+            'Dma.created',
+            'Dma.store_code',
+            'Dma.date_movement',
+            'Dma.date_accounting',
+            'Dma.user',
+            'Dma.type',
+            'Dma.cutout_type',
+            'Dma.good_code',
+            'Dma.quantity',
+            'Dma.cost'
+        ]);
+
+        $query->order([$orderField => $orderDirection]);
+
+        // Aplicar filtros
+        if (!empty($filters['store'])) {
+            $query->where(['Dma.store_code' => $filters['store']]);
+        }
+    
+        if (!empty($filters['created'])) {
+            $query->where(['DATE(Dma.created)' => $filters['created']]);
+        }
+
+        if (!empty($filters['date_start_movement']) || !empty($filters['date_end_movement'])) {
+            if (!empty($filters['date_start_movement'])) {
+                $query->where(['Dma.date_accounting >=' => $filters['date_start_movement']]);
+            }
+            if (!empty($filters['date_end_movement'])) {
+                $query->where(['Dma.date_accounting <=' => $filters['date_end_movement']]);
+            }
+        }
+    
+        if (!empty($filters['date_start_accounting']) || !empty($filters['date_end_accounting'])) {
+            if (!empty($filters['date_start_accounting'])) {
+                $query->where(['Dma.date_accounting >=' => $filters['date_start_accounting']]);
+            }
+            if (!empty($filters['date_end_accounting'])) {
+                $query->where(['Dma.date_accounting <=' => $filters['date_end_accounting']]);
+            }
+        }
+    
+        if (!empty($filters['good_code'])) {
+            $query->where(['Dma.good_code LIKE' => '%' . $filters['good_code'] . '%']);
+        }
+    
+        if (!empty($filters['month_year_accounting'])) {
+            list($mes, $ano) = explode("/", $filters['month_year_accounting']);
+            $query->where([
+                'YEAR(Dma.date_accounting)' => $ano,
+                'MONTH(Dma.date_accounting)' => $mes,
+            ]);
+        }
+    
+        if (!empty($filters['type'])) {
+            $query->where(['Dma.type' => $filters['type']]);
+        }
+    
+        if (!empty($filters['user'])) {
+            $query->where(['Dma.user LIKE' => '%' . $filters['user'] . '%']);
+        }
+    
+        if (!empty($filters['cost'])) {
+            $query->where(['Dma.cost >=' => (float)$filters['cost']]);
+        }
+    
+        // Obter todos os registros (sem paginação, geralmente) 
+        // ou use pagination se quiser.
+        $results = $query->all();
+    
+        // Preenchendo o Excel
+        $row = $dataStartRow + 1;
+        foreach ($results as $dma) {
+            $sheet->setCellValue('A' . $row, $dma->id);
+            $sheet->setCellValue('B' . $row, $dma->created->format('Y-m-d H:i:s'));
+            $sheet->setCellValue('C' . $row, $dma->store_code);
+            $sheet->setCellValue('D' . $row, $dma->date_movement->format('Y-m-d'));
+            $sheet->setCellValue('E' . $row, $dma->date_accounting->format('Y-m-d'));
+            $sheet->setCellValue('F' . $row, $dma->user);
+            $sheet->setCellValue('G' . $row, $dma->type);
+            $sheet->setCellValue('H' . $row, $dma->good_code);
+            $sheet->setCellValue('I' . $row, $dma->mercadoria->tx_descricao ?? '');
+            $sheet->setCellValue('J' . $row, $dma->quantity);
+            // Custo calculado ou nativo
+            $sheet->setCellValue('K' . $row, number_format(floatval($dma->cost), 2, ',', '.'));
+            $sheet->setCellValue('L' . $row, number_format(floatval($dma->cost * $dma->quantity), 2, ',', '.'));
+            $row++;
+        }
+
+        $query->where(['Dma.app_product_id' => 3]);
+    
+        // Gera e devolve o Excel
+        $writer = new Xlsx($spreadsheet);
+        $filename = 'dma_export.xlsx';
+        $tempFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $filename;
+        $writer->save($tempFile);
+    
+        return $this->response
+            ->withType('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            ->withHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+            ->withFile($tempFile, ['download' => true, 'delete' => true]);
+    }    
     
 }

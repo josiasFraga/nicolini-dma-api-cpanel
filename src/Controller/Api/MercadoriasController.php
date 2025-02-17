@@ -108,6 +108,23 @@ class MercadoriasController extends AppController
             ])
             ->toArray());
 
+        } else if ( $app_product_code == 3 ) {//Padaria
+
+            $conditions = [
+                'Mercadorias.secao IN' => [21],
+                'MercadoriasLojas.loja' => $store_code,
+            ];
+
+            $additional_conditions = [];
+
+            $this->loadModel('DmaBakeryMainGoods');
+    
+            $mains = array_values($this->DmaBakeryMainGoods->find('list', [
+                'keyField' => 'id',
+                'valueField' => 'good_code'
+            ])
+            ->toArray());
+
         }
 
         $mercadorias = $this->Mercadorias->find('all')

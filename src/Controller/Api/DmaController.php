@@ -346,7 +346,7 @@ class DmaController extends AppController
 		$jwtPayload = $this->request->getAttribute('jwtPayload');
 		$userId = $jwtPayload->sub;
 		$dados = json_decode($this->request->getData('dados'), true);
-		$app_product_id = 2;
+		$app_product_id = $dados['app_product_id'];
 		//Log::debug(addslashes($this->request->getData('dados')));
 		//die();
 
@@ -372,8 +372,8 @@ class DmaController extends AppController
 			'app_product_id' => $app_product_id,
 			'store_code' => $dados['store_code'],
 			'date_movement' => date('Y-m-d'),
-			'date_accounting' => date('Y-m-d'),
-			'cost' => $dados['good']['opcusto'] === 'M' ? $dados['good']['customed'] : $dados['good']['custotab'],
+			'date_accounting' => $date_accounting,
+			'cost' => $dados['good']['opcusto'] === 'M' ? floatval($dados['good']['customed']) : floatval($dados['good']['custotab']),
 			'user' => $userId,
 			'type' => 'Producao',
 			'quantity' => $dados['kg'],
@@ -411,7 +411,7 @@ class DmaController extends AppController
 		$jwtPayload = $this->request->getAttribute('jwtPayload');
 		$userId = $jwtPayload->sub;
 		$dados = json_decode($this->request->getData('dados'), true);
-		$app_product_id = 2;
+		$app_product_id = $dados['app_product_id'];
 		//Log::debug(addslashes($this->request->getData('dados')));
 		//die();
 
@@ -426,7 +426,6 @@ class DmaController extends AppController
 		if ( $dados['kg'] == 0 ) {
 			return $this->jsonResponse('ok', 'Quebra cadastrada com sucesso!');
 		}
-
 		
 		$dados['kg'] = (float)$dados['kg'];
 
@@ -438,8 +437,8 @@ class DmaController extends AppController
 			'app_product_id' => $app_product_id,
 			'store_code' => $dados['store_code'],
 			'date_movement' => date('Y-m-d'),
-			'date_accounting' => date('Y-m-d'),
-			'cost' => $dados['good']['opcusto'] === 'M' ? $dados['good']['customed'] : $dados['good']['custotab'],
+			'date_accounting' => $date_accounting,
+			'cost' => $dados['good']['opcusto'] === 'M' ? floatval($dados['good']['customed']) : floatval($dados['good']['custotab']),
 			'user' => $userId,
 			'type' => 'Quebra',
 			'quantity' => $dados['kg'],
@@ -755,6 +754,7 @@ class DmaController extends AppController
 					'id' => $producao['id'],
 					'kg' => number_format($producao['quantity'], 3, ',', ''),
 					'goodCode' => $producao['good_code'],
+					'cost' => $producao['cost'],
 					'store_code' => $store_code,
 					'good' => $this->Mercadorias->find('all')
 					->where([
@@ -805,6 +805,7 @@ class DmaController extends AppController
 					'id' => $quebra['id'],
 					'kg' => number_format($quebra['quantity'], 3, ',', ''),
 					'goodCode' => $quebra['good_code'],
+					'cost' => $quebra['cost'],
 					'store_code' => $store_code,
 					'good' => $this->Mercadorias->find('all')
 					->where([

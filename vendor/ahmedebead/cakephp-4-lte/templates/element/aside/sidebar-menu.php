@@ -108,6 +108,38 @@
 		</ul>
 		</li>
 
+		<li class="nav-item <?php 
+		echo $this->getRequest()->getParam('controller') === 'BakeryMainProducts' ? 'menu-open' : ''; 
+		echo $this->getRequest()->getParam('controller') === 'Dma' && $this->getRequest()->getParam('action') === 'padaria' ? 'menu-open' : '';
+		?>">
+		<a href="#" class="nav-link">
+			<i class="nav-icon fas fa-bread-slice"></i>
+			<p>
+			DMA Padaria
+			<i class="right fas fa-angle-left"></i>
+			</p>
+		</a>
+		<ul class="nav nav-treeview">
+
+			<li class="nav-item">
+			<a href="<?php echo $this->Url->build('/admin/bakery-main-products'); ?>" class="nav-link <?= $this->getRequest()->getParam('controller') === 'BakeryMainProducts' ? 'active' : '' ?>">
+				<p>- Produtos Principais</p>
+			</a>
+			</li>
+
+			<li class="nav-item">
+				<a href="<?php echo $this->Url->build([
+					'controller' => 'Dma',
+					'action' => 'padaria',
+					'?' => ['store' => '001']
+				]); ?>" class="nav-link <?= $this->getRequest()->getParam('controller') === 'Dma' && $this->getRequest()->getParam('action') === 'padaria' ? 'active' : '' ?>">
+					<p>- DMA's Cadastrados</p>
+				</a>
+			</li>
+
+		</ul>
+		</li>
+
 		<li class="nav-item <?= $this->getRequest()->getParam('controller') === 'ProductUsers' ? 'menu-open' : '' ?>">
 		<a href="<?php echo $this->Url->build('/admin/product-users'); ?>" class="nav-link">
 			<i class="fas fa-users-cog"></i>

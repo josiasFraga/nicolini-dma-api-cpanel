@@ -1,0 +1,14 @@
+INSERT INTO `sgdados_wms`.`app_products` (`created`, `updated`, `name`, `cene`) VALUES ('2025-02-17 09:03:42', '2025-02-17 09:03:44', 'DMA Padaria', 'DmaPadaria');
+
+CREATE TABLE `dma_bakery_main_goods` (
+	`id` INT NOT NULL AUTO_INCREMENT,
+	`good_code` VARCHAR(20) NOT NULL COLLATE 'latin1_swedish_ci',
+	`good_description` VARCHAR(50) NOT NULL COLLATE 'latin1_swedish_ci',
+	PRIMARY KEY (`id`) USING BTREE,
+	UNIQUE INDEX `good_code` (`good_code`) USING BTREE
+)
+COLLATE='latin1_swedish_ci'
+ENGINE=MyISAM
+ROW_FORMAT=DYNAMIC
+AUTO_INCREMENT=6
+;
