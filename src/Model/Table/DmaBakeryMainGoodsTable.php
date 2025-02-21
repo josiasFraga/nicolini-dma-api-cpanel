@@ -37,7 +37,8 @@ class DmaBakeryMainGoodsTable extends Table
     {
         parent::initialize($config);
 
-        $this->setTable('dma_bakery_main_goods');
+        //$this->setTable('dma_bakery_main_goods');
+        $this->setTable('dma_produce_section_main_goods');
         $this->setDisplayField('id');
         $this->setPrimaryKey('id');
     }
