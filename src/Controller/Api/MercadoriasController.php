@@ -146,7 +146,7 @@ class MercadoriasController extends AppController
             ['Mercadorias.cd_codigoint = MercadoriasLojas.codigoint']
         )
         //->andWhere($additional_conditions)
-        ->limit(1000)
+        //->limit(1000)
         ->toArray();
 
         if ( !empty($mains) ) {
