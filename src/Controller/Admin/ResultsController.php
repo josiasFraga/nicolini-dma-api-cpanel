@@ -63,7 +63,8 @@ class ResultsController extends AppController
                 ->contain(['Mercadorias'])
                 ->where([
                     'Dma.store_code IN' => $selectedStoreCodes,
-                    'Dma.date_accounting' => $dateAccounting
+                    'Dma.date_accounting' => $dateAccounting,
+                    'Dma.app_product_id' => 1 // Açougue
                 ])
                 ->group([
                     'Dma.id'
@@ -301,7 +302,8 @@ class ResultsController extends AppController
             ->contain(['Mercadorias'])
             ->where([
                 'Dma.store_code IN' => $selectedStoreCodes,
-                'Dma.date_accounting' => $dateAccounting
+                'Dma.date_accounting' => $dateAccounting,
+                'Dma.app_product_id' => 1 // Açougue
             ])
             ->group([
                 'Dma.id'
