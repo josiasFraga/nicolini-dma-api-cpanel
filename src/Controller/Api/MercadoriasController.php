@@ -95,7 +95,9 @@ class MercadoriasController extends AppController
 
             $conditions = [
                 'Mercadorias.secao IN' => [27, 41, 43, 44, 45],
+                'Mercadorias.geraconsumo' => '0',
                 'MercadoriasLojas.loja' => $store_code,
+                'MercadoriasLojas.ltmix !=' => 'S'
             ];
 
             $additional_conditions = [];

@@ -150,6 +150,11 @@ return static function (RouteBuilder $routes) {
             'action' => 'saveOutcome'
         ])->setMethods(['POST']);
 
+        $builder->connect('/dma/save-income-outcome', [
+            'controller' => 'Dma',
+            'action' => 'saveIncomeOutcome'
+        ])->setMethods(['POST']);
+
         $builder->connect('/dma/next-date', [
             'controller' => 'Dma',
             'action' => 'nextDate'

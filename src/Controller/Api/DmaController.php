@@ -22,7 +22,7 @@ class DmaController extends AppController
 	}
 
 	protected function getUnauthenticatedActions() {
-		return ['finish', 'nextDate', 'saveIncome', 'saveOutcome', 'loadOutcomes', 'loadIncomes', 'autoFinish', 'saveProduction', 'loadProductions', 'loadDiscrepancies', 'saveDiscrepancy'];
+		return ['finish', 'nextDate', 'saveIncome', 'saveOutcome', 'loadOutcomes', 'loadIncomes', 'autoFinish', 'saveProduction', 'loadProductions', 'loadDiscrepancies', 'saveDiscrepancy', 'saveIncomeOutcome'];
 	}
 
 	public function finish()
@@ -576,11 +576,66 @@ class DmaController extends AppController
 
 	}
 
+	public function saveIncomeOutcome() {
+
+		$jwtPayload = $this->request->getAttribute('jwtPayload');
+		$userId = $jwtPayload->sub;
+		$dados = json_decode($this->request->getData('dados'), true);
+		Log::debug($this->request->getData('dados'));
+		
+		$this->loadModel('Dma');
+
+		$date_accounting = $this->calculateDateAccounting($dados['store_code']);
+
+		if ( !$date_accounting ) {
+			return $this->jsonResponse('erro', 'Não é possível salvar lançamentos para depois de amanhã.');
+		}
+
+		if ( count($dados) === 0 ) {
+			return $this->jsonResponse('erro', 'Nenhum dado informado para salvar!');
+		}
+
+		foreach( $dados['dados'] AS $key => $dado ) {
+			$dado['kg'] = str_replace(',','.',str_replace('.','',$dado['kg']));
+			$dado['kg'] = (float)$dado['kg'];
+
+			if ( $dado['kg'] < 0 ) {
+				$this->removeQuantity(3, $dados['store_code'], $userId, $dado['tipo'], $dado['goodCode'], $dado['kg']);
+			} else {
+
+				$dados_salvar=[
+					'app_product_id' => 3,
+					'store_code' => $dados['store_code'],
+					'quantity' => $dado['kg'],
+					'good_code' => str_pad($dado['goodCode'], 7, "0", STR_PAD_LEFT),
+					'type' => $dado['tipo'],
+					'user' => $userId,
+					'date_movement' => date('Y-m-d'),
+					'date_accounting' => $date_accounting,
+					'ended' => 'N'
+				];
+
+				$dma = $this->Dma->newEntity($dados_salvar);
+
+				if ( !$this->Dma->save($dma) ) {
+					$errors = $dma->getErrors();
+					return $this->jsonResponse('erro', 'Erro ao cadastrar a entrada/saida!', $errors);
+				}
+
+			}
+
+		}
+		
+		return $this->jsonResponse('ok', 'Saída cadastrada com sucesso!');
+
+	}
+
 	public function loadIncomes() {
 
 		$jwtPayload = $this->request->getAttribute('jwtPayload');
 		$userId = $jwtPayload->sub;        
 		$store_code = $this->request->getQuery('store_code');
+		$app_product_id = $this->request->getQuery('app_product_id');
 
 		if ( !$store_code ) {
 
@@ -590,8 +645,63 @@ class DmaController extends AppController
 			]);
 		}
 
-		$this->loadModel('Dma');
+		if ( !$app_product_id ) {
+			$app_product_id = 1; // Default para açougue
+		}
 
+		if ( $app_product_id == 1 ) {
+			$entradas_retornar = $this->loadButcherIncomes($userId, $store_code);
+		} else if ( $app_product_id == 3 ) {
+			$entradas_retornar = $this->loadBakeryIncomes($userId, $store_code);
+		} else {
+			$entradas_retornar = [];
+		}
+
+
+		return $this->jsonResponse('ok', '', [], $entradas_retornar);
+	}
+
+	private function loadBakeryIncomes($userId, $store_code) {
+
+		$this->loadModel('Dma');
+		$this->loadModel('Mercadorias');
+		
+		$entradas = $this->Dma->find('all')
+		->where([
+			'store_code' => $store_code,
+			'user' => $userId,
+			'ended' => 'N',
+			'type' => 'Entrada',
+			'app_product_id' => 3
+		])
+		->toArray();
+
+		$entradas_retornar = [];
+		if ( count($entradas) > 0 ) {
+			foreach( $entradas as $key => $entrada){
+				$item = [
+					'kg' => number_format($entrada['quantity'], 3, ',', ''),
+					'goodCode' => $entrada['good_code'],
+					'store_code' => $store_code,
+					'good' => $this->Mercadorias->find('all')
+					->where([
+						'Mercadorias.cd_codigoint' => str_pad($entrada['good_code'], 7, "0", STR_PAD_LEFT)
+					])
+					->first()
+				];
+
+				$entradas_retornar[] = $item;
+			}
+		}
+
+		return $entradas_retornar;
+
+	}
+
+	private function loadButcherIncomes($userId, $store_code) {
+
+		$this->loadModel('Dma');
+		
 		$total_entradas_primeira = $this->Dma->find('all')
 		->select([
 			'cutout_type',
@@ -669,8 +779,8 @@ class DmaController extends AppController
 			'store_code' => $store_code
 		];
 
+		return $entradas_retornar;
 
-		return $this->jsonResponse('ok', '', [], $entradas_retornar);
 	}
 
 	public function loadOutcomes() {
@@ -678,6 +788,7 @@ class DmaController extends AppController
 		$jwtPayload = $this->request->getAttribute('jwtPayload');
 		$userId = $jwtPayload->sub;        
 		$store_code = $this->request->getQuery('store_code');
+		$app_product_id = $this->request->getQuery('app_product_id');
 
 		if ( !$store_code ) {
 
@@ -687,6 +798,24 @@ class DmaController extends AppController
 			]);
 		}
 
+		if ( !$app_product_id ) {
+			$app_product_id = 1; // Default para açougue
+		}
+
+		if ( $app_product_id == 1 ) {
+			$saidas_retornar = $this->loadButcherOutcomes($userId, $store_code);
+		} else if ( $app_product_id == 3 ) {
+			$saidas_retornar = $this->loadBakeryOutcomes($userId, $store_code);
+		} else {
+			$saidas_retornar = [];
+		}
+
+
+		return $this->jsonResponse('ok', '', [], $saidas_retornar);
+	}
+
+	private function loadButcherOutcomes($userId, $store_code) {
+		
 		$this->loadModel('Dma');
 		$this->loadModel('Mercadorias');
 
@@ -695,7 +824,8 @@ class DmaController extends AppController
 			'store_code' => $store_code,
 			'user' => $userId,
 			'ended' => 'N',
-			'type' => 'Saida'
+			'type' => 'Saida',
+			'app_product_id' => 1
 		])->toArray();
 
 		$saidas_retornar = [];
@@ -716,8 +846,44 @@ class DmaController extends AppController
 			}
 		}
 
+		return $saidas_retornar;
 
-		return $this->jsonResponse('ok', '', [], $saidas_retornar);
+	}
+
+	private function loadBakeryOutcomes($userId, $store_code) {
+
+		$this->loadModel('Dma');
+		
+		$saidas = $this->Dma->find('all')
+		->where([
+			'store_code' => $store_code,
+			'user' => $userId,
+			'ended' => 'N',
+			'type' => 'Saida',
+			'app_product_id' => 3
+		])
+		->toArray();
+
+		$saidas_retornar = [];
+		if ( count($saidas) > 0 ) {
+			foreach( $saidas as $key => $saida){
+				$item = [
+					'kg' => number_format($saida['quantity'], 3, ',', ''),
+					'goodCode' => $saida['good_code'],
+					'store_code' => $store_code,
+					'good' => $this->Mercadorias->find('all')
+					->where([
+						'Mercadorias.cd_codigoint' => str_pad($saida['good_code'], 7, "0", STR_PAD_LEFT)
+					])
+					->first()
+				];
+
+				$saidas_retornar[] = $item;
+			}
+		}
+
+		return $saidas_retornar;
+
 	}
 
 	public function loadProductions() {
