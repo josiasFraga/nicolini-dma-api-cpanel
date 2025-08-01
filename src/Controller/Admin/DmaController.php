@@ -266,6 +266,8 @@ class DmaController extends AppController
         }
  
         $query->where(['Dma.app_product_id' => 2]);
+
+        $query->group(['Dma.id']);
     
         // Configurar paginação
         $this->paginate = [
