@@ -1031,11 +1031,11 @@ class DmaController extends AppController
 					->toArray();
 			
 					if ( count($saidas) == 0 ) {
-						return $this->jsonResponse('erro', 'Nenhuma saída informada.');
+						continue;
 					}
 				
 					if ( count($entradas) == 0 ) {
-						return $this->jsonResponse('erro', 'Nenhuma entrada informada.');
+						continue;
 					}
 	
 					$this->finishDma([
