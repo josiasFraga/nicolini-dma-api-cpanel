@@ -1001,7 +1001,7 @@ class DmaController extends AppController
 		$dmas_nao_finalizados = $this->Dma->find('all')
 		->where([
 			'Dma.ended' => 'N',
-			'Dma.date_accounting <=' => date('Y-m-d')
+			'Dma.date_accounting <' => date('Y-m-d')
 		])
 		->group([
 			'Dma.store_code',
@@ -1019,7 +1019,7 @@ class DmaController extends AppController
 						'Dma.ended' => 'N',
 						'Dma.type' => 'Entrada',
 						'Dma.store_code' => $dma['store_code'],
-						'Dma.date_accounting <=' => date('Y-m-d')
+						'Dma.date_accounting <' => date('Y-m-d')
 					])
 					->toArray();
 	
@@ -1028,7 +1028,7 @@ class DmaController extends AppController
 						'Dma.ended' => 'N',
 						'Dma.type' => 'Saida',
 						'Dma.store_code' => $dma['store_code'],
-						'Dma.date_accounting <=' => date('Y-m-d')
+						'Dma.date_accounting <' => date('Y-m-d')
 					])
 					->toArray();
 			
@@ -1052,7 +1052,7 @@ class DmaController extends AppController
 						'Dma.ended' => 'N',
 						'Dma.type' => 'Producao',
 						'Dma.store_code' => $dma['store_code'],
-						'Dma.date_accounting <=' => date('Y-m-d')
+						'Dma.date_accounting <' => date('Y-m-d')
 					])
 					->toArray();
 
@@ -1061,7 +1061,7 @@ class DmaController extends AppController
 						'Dma.ended' => 'N',
 						'Dma.type' => 'Quebra',
 						'Dma.store_code' => $dma['store_code'],
-						'Dma.date_accounting <=' => date('Y-m-d')
+						'Dma.date_accounting <' => date('Y-m-d')
 					])
 					->toArray();
 
