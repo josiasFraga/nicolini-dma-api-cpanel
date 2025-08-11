@@ -41,7 +41,7 @@ class ResultsController extends AppController
 
         $dateAccounting = date('d/m/Y');
         $dadosRelatorio = [];
-        for ($i = 1; $i <= 18; $i++) {
+        for ($i = 1; $i <= 29; $i++) {
             $storeCodes[sprintf('%03d', $i)] = sprintf('%03d', $i);
         }
 
@@ -285,7 +285,7 @@ class ResultsController extends AppController
         $this->Authorization->skipAuthorization();
         $dateAccounting = date('Y-m-d');
         $dadosRelatorio = [];
-        for ($i = 1; $i <= 18; $i++) {
+        for ($i = 1; $i <= 29; $i++) {
             $storeCodes[sprintf('%03d', $i)] = sprintf('%03d', $i);
         }
 

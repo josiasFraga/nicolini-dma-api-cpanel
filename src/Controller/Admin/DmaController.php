@@ -168,7 +168,7 @@ class DmaController extends AppController
     
         // Gerar lista de lojas
         $storeCodes = [];
-        for ($i = 1; $i <= 18; $i++) {
+        for ($i = 1; $i <= 29; $i++) {
             $storeCodes[sprintf('%03d', $i)] = sprintf('%03d', $i);
         }
         $storeCodes['ACC'] = 'ACC'; // Adicionar loja adicional, se necessário
@@ -282,7 +282,7 @@ class DmaController extends AppController
     
         // Gerar lista de lojas
         $storeCodes = [];
-        for ($i = 1; $i <= 18; $i++) {
+        for ($i = 1; $i <= 29; $i++) {
             $storeCodes[sprintf('%03d', $i)] = sprintf('%03d', $i);
         }
         $storeCodes['ACC'] = 'ACC'; // Adicionar loja adicional, se necessário
@@ -394,7 +394,7 @@ class DmaController extends AppController
     
         // Gerar lista de lojas
         $storeCodes = [];
-        for ($i = 1; $i <= 18; $i++) {
+        for ($i = 1; $i <= 29; $i++) {
             $storeCodes[sprintf('%03d', $i)] = sprintf('%03d', $i);
         }
         $storeCodes['ACC'] = 'ACC'; // Adicionar loja adicional, se necessário

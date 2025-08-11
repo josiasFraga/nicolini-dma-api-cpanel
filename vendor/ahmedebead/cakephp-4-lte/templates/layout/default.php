@@ -4,7 +4,7 @@ use Cake\Core\Configure; ?>
 
 <?php
 $storeCodes = [];
-for ($i = 1; $i <= 18; $i++) {
+for ($i = 1; $i <= 29; $i++) {
     $storeCodes[sprintf('%03d', $i)] = sprintf('%03d', $i);
 }
 
