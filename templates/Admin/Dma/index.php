@@ -159,8 +159,8 @@ $this->assign('title', 'DMA');
 						<label for="type">Tipo</label>
 						<select class="form-control" id="type" name="type">
 							<option value="" <?= empty($filters['type']) ? 'selected' : '' ?>>Selecione</option>
-							<option value="Entrada" <?= $filters['type'] === 'Entrada' ? 'selected' : '' ?>>Entrada</option>
-							<option value="Saida" <?= $filters['type'] === 'Saida' ? 'selected' : '' ?>>Saída</option>
+							<option value="Entrada" <?= !empty($filters['type']) && $filters['type'] === 'Entrada' ? 'selected' : '' ?>>Entrada</option>
+							<option value="Saida" <?= !empty($filters['type']) && $filters['type'] === 'Saida' ? 'selected' : '' ?>>Saída</option>
 						</select>
 					</div>
 					<div class="form-group">

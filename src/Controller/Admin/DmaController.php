@@ -490,8 +490,8 @@ class DmaController extends AppController
         ";
         $totalCaseSql = "
             CASE
-                Mercadorias.opcusto = 'T' THEN (Mercadorias.custotab * Dma.quantity)
-                Mercadorias.opcusto <> 'T' THEN (Mercadorias.customed * Dma.quantity)
+                WHEN Mercadorias.opcusto = 'T' THEN (Mercadorias.custotab * Dma.quantity)
+                WHEN Mercadorias.opcusto <> 'T' THEN (Mercadorias.customed * Dma.quantity)
                 ELSE 0
             END
         ";
@@ -570,6 +570,8 @@ class DmaController extends AppController
         if (!empty($filters['cost'])) {
             $query->where(['Dma.cost >=' => (float)$filters['cost']]);
         }
+
+        $query->where(['Dma.app_product_id' => 1]);
     
         // Obter todos os registros (sem paginação, geralmente) 
         // ou use pagination se quiser.
