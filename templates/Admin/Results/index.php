@@ -62,26 +62,29 @@ $storeCodes = ['all' => 'Selecionar Todas'] + $storeCodes;
               <thead>
                 <!-- Linha de cabeçalho adicionada para agrupamento -->
                 <tr>
-                    <th rowspan="2" class="text-center">LOJA</th>
+                    <th class="text-center"></th>
                     <th colspan="2" class="text-center">SAÍDAS</th>
-                    <th colspan="2" class="text-center">ENTRADAS</th>
+                    <th colspan="4" class="text-center">ENTRADAS</th>
                     <th colspan="2" class="text-center">DIFERENÇA</th>
                     <th colspan="4" class="text-center">PRIMEIRA</th>
                     <th colspan="4" class="text-center">SEGUNDA</th>
                     <th colspan="4" class="text-center">OSSO E PELANCA</th>
-                    <th colspan="4" class="text-center">OSSO A DESCARTE</th>
+                    <!--<th colspan="4" class="text-center">OSSO A DESCARTE</th>-->
      
-                    <th rowspan="2" class="text-center">Posição Rank</th>
+                    <th class="text-center"></th>
                     <?php if ($startDate == $endDate): ?>
-                    <th rowspan="2" class="text-center">Finalizado por</th>
+                    <th class="text-center"></th>
                     <?php endif; ?>
                 </tr>
                 <!-- Linha de cabeçalho existente -->
                 <tr>
+                    <th class="text-center">LOJA</th>
                     <th class="text-center">Kg</th>
                     <th class="text-center">R$</th>
                     <th class="text-center">Kg</th>
                     <th class="text-center">R$</th>
+                    <th class="text-center">R$ Previstos</th>
+                    <th class="text-center">% Atingida</th>
                     <th class="text-center">Kg</th>
                     <th class="text-center">R$</th>
 
@@ -100,10 +103,15 @@ $storeCodes = ['all' => 'Selecionar Todas'] + $storeCodes;
                     <th class="text-center">R$ Realizados</th>
                     <th class="text-center">R$ Diferença</th>
 
-                    <th class="text-center">R$ Custo Médio</th>
+                    <!--<th class="text-center">R$ Custo Médio</th>
                     <th class="text-center">R$ Previstos</th>
                     <th class="text-center">R$ Realizados</th>
-                    <th class="text-center">R$ Diferença</th>
+                    <th class="text-center">R$ Diferença</th>-->
+                    <th class="text-center">Posição Rank</th>
+                    
+                    <?php if ($startDate == $endDate): ?>
+                    <th class="text-center">Finalizado por</th>
+                    <?php endif; ?>
                     <!-- Células dinâmicas para cada código de retalho -->
               
                 </tr>
@@ -114,13 +122,16 @@ $storeCodes = ['all' => 'Selecionar Todas'] + $storeCodes;
                         <tr>
                             <td class="text-center"><?= $dado['loja'] ?></td>
 
-                            <td class="text-center"><?= number_format($dado['total_saidas_kg'],2,',','.') ?></td>
+                            <td class="text-center"><?= number_format($dado['total_saidas_kg'],3,',','.') ?></td>
                             <td class="text-center"><?= number_format($dado['total_saidas_rs'],2,',','.') ?></td>
 
-                            <td class="text-center"><?= number_format($dado['total_entradas_kg'],2,',','.') ?></td>
+                            <td class="text-center"><?= number_format($dado['total_entradas_kg'],3,',','.') ?></td>
                             <td class="text-center"><?= number_format($dado['total_entradas_rs'],2,',','.') ?></td>
 
-                            <td class="text-center"><?= number_format($dado['diferenca_saidas_entradas_kg'],2,',','.') ?></td>
+                            <td class="text-center"><?= number_format($dado['rendimento_esperado_total'],2,',','.') ?></td>
+                            <td class="text-center"><?= number_format(($dado['total_entradas_rs'] / $dado['rendimento_esperado_total']) * 100,2,',','.') ?></td>
+
+                            <td class="text-center"><?= number_format($dado['diferenca_saidas_entradas_kg'],3,',','.') ?></td>
                             <td class="text-center"><?= number_format($dado['diferenca_saidas_entradas_rs'],2,',','.') ?></td>
 
                             <td class="text-center"><?= number_format($dado['custo_med_primeira'],2,',','.') ?></td>
@@ -138,10 +149,10 @@ $storeCodes = ['all' => 'Selecionar Todas'] + $storeCodes;
                             <td class="text-center"><?= number_format($dado['rendimento_executado_osso_pelanca'],2,',','.') ?></td>
                             <td class="text-center"><?= number_format($dado['rendimento_dif_osso_pelanca'],2,',','.') ?></td>
 
-                            <td class="text-center"><?= number_format($dado['custo_med_osso_descarte'],2,',','.') ?></td>
+                            <!--<td class="text-center"><?= number_format($dado['custo_med_osso_descarte'],2,',','.') ?></td>
                             <td class="text-center"><?= number_format($dado['rendimento_esperado_osso_descarte'],2,',','.') ?></td>
                             <td class="text-center"><?= number_format($dado['rendimento_executado_osso_descarte'],2,',','.') ?></td>
-                            <td class="text-center"><?= number_format($dado['rendimento_dif_osso_descarte'],2,',','.') ?></td>
+                            <td class="text-center"><?= number_format($dado['rendimento_dif_osso_descarte'],2,',','.') ?></td>-->
 
                             <td class="text-center"><?= $dado['posicao_rank'] ?></td>
                             <?php if ($startDate == $endDate): ?>
@@ -179,3 +190,43 @@ document.getElementById("printButton").addEventListener("click", function() {
 
 <!-- Inclusão do JS do Select2 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
+<style>
+  /* Fixar cabeçalho da tabela */
+  .table-responsive {
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  
+  /* Remove bordas superiores para evitar duplicação visual ao rolar */
+  .table-bordered th {
+      border-top: 0; 
+  }
+
+  /* Configuração base para todos os TH do cabeçalho */
+  thead th {
+    position: sticky;
+    background-color: #fff;
+    z-index: 10;
+    /* Sombra para destaque visual */
+    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Primeira linha do cabeçalho fica no topo absoluto */
+  thead tr:nth-child(1) th {
+    top: 0;
+  }
+
+  /* Segunda linha do cabeçalho precisa descer a altura da primeira linha.
+     Ajuste este valor (ex: 45px) conforme a altura real da sua primeira linha de cabeçalho.
+  */
+  thead tr:nth-child(2) th {
+    top: 48px; /* Altura estimada da primeira linha */
+    z-index: 9; /* Um pouco abaixo da primeira linha se sobrepor, mas acima do corpo */
+  }
+  
+  /* Ajuste para TH com rowspan na primeira linha para ocupar toda a altura */
+  thead tr:nth-child(1) th[rowspan] {
+    z-index: 11; /* Prioridade máxima */
+  }
+</style>

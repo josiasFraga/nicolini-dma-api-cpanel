@@ -59,6 +59,17 @@ class ResultsController extends AppController
             $this->loadModel('Dma');
             $this->loadModel('Mercadorias');
             $this->loadModel('ExpectedYield');
+
+            $codigos_de_recortes = $this->Dma->find()
+                ->contain(['Mercadorias'])
+                ->distinct(['cutout_type'])
+                ->where([
+                    'Dma.app_product_id' => 1 // Açougue
+                ])
+                ->group([
+                    'Dma.cutout_type'
+                ])
+                ->toArray();
     
             $query = $this->Dma->find()
                 ->contain(['Mercadorias'])
@@ -88,25 +99,57 @@ class ResultsController extends AppController
                         'rendimento_esperado_primeira' => 0,
                         'rendimento_esperado_segunda' => 0,
                         'rendimento_esperado_osso_pelanca' => 0,
-                        'rendimento_esperado_osso_descarte' => 0,
+                        //'rendimento_esperado_osso_descarte' => 0,
                         'rendimento_executado_primeira' => 0,
                         'rendimento_executado_segunda' => 0,
                         'rendimento_executado_osso_pelanca' => 0,
-                        'rendimento_executado_osso_descarte' => 0,
+                        //'rendimento_executado_osso_descarte' => 0,
                         'rendimento_dif_primeira' => 0,
                         'rendimento_dif_segunda' => 0,
                         'rendimento_dif_osso_pelanca' => 0,
-                        'rendimento_dif_osso_a_descarte' => 0,
+                        //'rendimento_dif_osso_a_descarte' => 0,
+                        'rendimento_esperado_total' => 0,
                         'custo_med_primeira' => 0,
                         'custo_med_segunda' => 0,
                         'custo_med_osso_pelanca' => 0,
-                        'custo_med_osso_descarte' => 0,
+                        //'custo_med_osso_descarte' => 0,
                         'encerramento' => '2000-01-01',
                         'base_calc_rank' => 0,
                         'posicao_rank' => 1,
                         'loja' => $storeCode,
                         'finalizado_por' => ''
                     ];
+                }
+
+                // Preciso dos custos medios para calcular o rendimento esperado, 
+                // então faço um loop para pegar o custo médio de cada tipo de corte
+                foreach( $codigos_de_recortes as $key_loop => $dma_loop ){
+                    $valor_mercadoria = 0;
+
+                    if ( $dma_loop['mercadoria']['opcusto'] == "M" ) {
+                        $valor_mercadoria = $dma_loop['mercadoria']['customed'];
+                    }
+                    else {
+                        $valor_mercadoria = $dma_loop['mercadoria']['custotab'];
+                    }
+
+                    if ( $dma_loop['cutout_type'] == "Primeira" ) {
+                        $dadosRelatorio[$storeCode]['custo_med_primeira'] =  $valor_mercadoria;
+                    }
+
+                    else if ( $dma_loop['cutout_type'] == "Segunda" ) {
+                        $dadosRelatorio[$storeCode]['custo_med_segunda'] =  $valor_mercadoria;
+                    }
+
+                    else if ( $dma_loop['cutout_type'] == "Osso e Pelanca" ) {
+                        $dadosRelatorio[$storeCode]['custo_med_osso_pelanca'] =  $valor_mercadoria;
+                    }
+
+                    /*else if ( $dma_loop['cutout_type'] == "Osso a Descarte" ) {
+                        $dadosRelatorio[$storeCode]['custo_med_osso_descarte'] =  $valor_mercadoria;
+                    }*/
+    
+                    $valor_mercadoria = 0;
                 }
 
                 $cutoutCodes = $this->StoreCutoutCodes->find()->where([
@@ -128,13 +171,15 @@ class ResultsController extends AppController
         
                     $dadosRelatorio[$storeCode]['total_saidas_kg'] += $dma_qtd;
                     $valor_mercadoria = 0;
-    
+
                     if ( $dma['mercadoria']['opcusto'] == "M" ) {
                         $valor_mercadoria = $dma['mercadoria']['customed'];
                     }
                     else {
                         $valor_mercadoria = $dma['mercadoria']['custotab'];
                     }
+
+                    //debug("mercadoria " . $dma['good_code'] . " - saida: ".$dma_qtd." - valor mercadoria: ".$valor_mercadoria." - total: ".$dma_qtd * $valor_mercadoria);
                     
                     $dadosRelatorio[$storeCode]['total_saidas_rs'] += $dma_qtd * $valor_mercadoria;
 
@@ -157,17 +202,26 @@ class ResultsController extends AppController
                     $espectativa_primeira_porc = $espectativa['prime'] ? $espectativa['prime']/100 : 0;
                     $espectativa_segunda_porc = $espectativa['second'] ? $espectativa['second']/100 : 0;
                     $espectativa_osso_pelanca_porc = $espectativa['bones_skin'] ? $espectativa['bones_skin']/100 : 0;
-                    $espectativa_osso_descarte_porc = $espectativa['bones_discard'] && $espectativa['bones_discard'] > 0 ? $espectativa['bones_discard']/100 : 0;
+                    //$espectativa_osso_descarte_porc = $espectativa['bones_discard'] && $espectativa['bones_discard'] > 0 ? $espectativa['bones_discard']/100 : 0;
+
+                    
 
                     $espectativa_primeira = $dma_qtd * $espectativa_primeira_porc;
                     $espectativa_segunda = $dma_qtd * $espectativa_segunda_porc;
                     $espectativa_osso_pelanca = $dma_qtd * $espectativa_osso_pelanca_porc;
-                    $espectativa_osso_descarte = $dma_qtd * $espectativa_osso_descarte_porc;
+                    //$espectativa_osso_descarte = $dma_qtd * $espectativa_osso_descarte_porc;
 
-                    $dadosRelatorio[$storeCode]['rendimento_esperado_primeira'] += $espectativa_primeira * $valor_mercadoria;
-                    $dadosRelatorio[$storeCode]['rendimento_esperado_segunda'] += $espectativa_segunda * $valor_mercadoria;
-                    $dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca'] += $espectativa_osso_pelanca * $valor_mercadoria;
-                    $dadosRelatorio[$storeCode]['rendimento_esperado_osso_descarte'] += $espectativa_osso_descarte * $valor_mercadoria;
+                    //debug("expectativa primeira porc: ".$espectativa_primeira_porc." expectativa_primeira: ".$espectativa_primeira);
+                    //debug("expectativa segunda porc: ".$espectativa_segunda_porc." expectativa_segunda: ".$espectativa_segunda);
+                    //debug("expectativa osso e pelanca porc: ".$espectativa_osso_pelanca_porc." expectativa_osso_pelanca: ".$espectativa_osso_pelanca);
+                    //debug("expectativa osso e descarte porc: ".$espectativa_osso_descarte_porc." expectativa_osso_descarte: ".$espectativa_osso_descarte);
+                    //debug("expectativas ".$espectativa_primeira." - ".$espectativa_segunda." - ".$espectativa_osso_pelanca." - ".$espectativa_osso_descarte);
+
+                    $dadosRelatorio[$storeCode]['rendimento_esperado_primeira'] += $espectativa_primeira * $dadosRelatorio[$storeCode]['custo_med_primeira'];
+                    $dadosRelatorio[$storeCode]['rendimento_esperado_segunda'] += $espectativa_segunda * $dadosRelatorio[$storeCode]['custo_med_segunda'];
+                    $dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca'] += $espectativa_osso_pelanca * $dadosRelatorio[$storeCode]['custo_med_osso_pelanca'];
+                    //$dadosRelatorio[$storeCode]['rendimento_esperado_osso_descarte'] += $espectativa_osso_descarte * $dadosRelatorio[$storeCode]['custo_med_osso_descarte'];
+
 
                 }
     
@@ -214,30 +268,34 @@ class ResultsController extends AppController
 
                     }
 
+                    //debug("mercadoria " . $dma['good_code'] . " - entrada: ".$dma_qtd." - valor mercadoria: ".$valor_mercadoria." - total: ".$dma_qtd * $valor_mercadoria." - cut: ".$cutout_type);
 
                     $dadosRelatorio[$storeCode]['total_entradas_rs'] += $dma_qtd * $valor_mercadoria;
 
                     if ( $cutout_type == "Primeira" ) {
                         $dadosRelatorio[$storeCode]['rendimento_executado_primeira'] += $dma_qtd * $valor_mercadoria;
-                        $dadosRelatorio[$storeCode]['custo_med_primeira'] =  $valor_mercadoria;
                     }
 
                     else if ( $cutout_type == "Segunda" ) {
                         $dadosRelatorio[$storeCode]['rendimento_executado_segunda'] += $dma_qtd * $valor_mercadoria;
-                        $dadosRelatorio[$storeCode]['custo_med_segunda'] =  $valor_mercadoria;
                     }
 
                     else if ( $cutout_type == "Osso e Pelanca" ) {
                         $dadosRelatorio[$storeCode]['rendimento_executado_osso_pelanca'] += $dma_qtd * $valor_mercadoria;
-                        $dadosRelatorio[$storeCode]['custo_med_osso_pelanca'] =  $valor_mercadoria;
                     }
 
-                    else if ( $cutout_type == "Osso a Descarte" ) {
+                    /*else if ( $cutout_type == "Osso a Descarte" ) {
                         $dadosRelatorio[$storeCode]['rendimento_executado_osso_descarte'] += $dma_qtd * $valor_mercadoria;
-                        $dadosRelatorio[$storeCode]['custo_med_osso_descarte'] =  $valor_mercadoria;
-                    }
+                    }*/
           
                 }
+
+                // Calcular o rendimento esperado total somando o rendimento esperado de cada tipo de corte
+                $dadosRelatorio[$storeCode]['rendimento_esperado_total'] = 
+                        $dadosRelatorio[$storeCode]['rendimento_esperado_primeira'] + 
+                        $dadosRelatorio[$storeCode]['rendimento_esperado_segunda'] + 
+                        $dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca'];/* + 
+                        $dadosRelatorio[$storeCode]['rendimento_esperado_osso_descarte'];*/
 
                 // Calcula a diferença entre entradas e saídas em Kg e em R$
                 $dadosRelatorio[$storeCode]['diferenca_saidas_entradas_kg'] = $dadosRelatorio[$storeCode]['total_saidas_kg']-$dadosRelatorio[$storeCode]['total_entradas_kg'];
@@ -247,17 +305,15 @@ class ResultsController extends AppController
                 $dadosRelatorio[$storeCode]['rendimento_dif_primeira'] = $dadosRelatorio[$storeCode]['rendimento_executado_primeira']-$dadosRelatorio[$storeCode]['rendimento_esperado_primeira'];
                 $dadosRelatorio[$storeCode]['rendimento_dif_segunda'] = $dadosRelatorio[$storeCode]['rendimento_executado_segunda']-$dadosRelatorio[$storeCode]['rendimento_esperado_segunda'];
                 $dadosRelatorio[$storeCode]['rendimento_dif_osso_pelanca'] = $dadosRelatorio[$storeCode]['rendimento_executado_osso_pelanca']-$dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca'];
-                $dadosRelatorio[$storeCode]['rendimento_dif_osso_descarte'] = $dadosRelatorio[$storeCode]['rendimento_executado_osso_descarte']-$dadosRelatorio[$storeCode]['rendimento_esperado_osso_descarte'];
+                //$dadosRelatorio[$storeCode]['rendimento_dif_osso_descarte'] = $dadosRelatorio[$storeCode]['rendimento_executado_osso_descarte']-$dadosRelatorio[$storeCode]['rendimento_esperado_osso_descarte'];
 
-                $dadosRelatorio[$storeCode]['base_calc_rank'] += 
-                    (!empty($dadosRelatorio[$storeCode]['rendimento_esperado_primeira']) ? $dadosRelatorio[$storeCode]['rendimento_executado_primeira'] / $dadosRelatorio[$storeCode]['rendimento_esperado_primeira'] : $dadosRelatorio[$storeCode]['rendimento_executado_primeira'])
-                    + (!empty($dadosRelatorio[$storeCode]['rendimento_esperado_segunda']) ? $dadosRelatorio[$storeCode]['rendimento_executado_segunda'] / $dadosRelatorio[$storeCode]['rendimento_esperado_segunda'] : $dadosRelatorio[$storeCode]['rendimento_esperado_segunda'])
-                    + (!empty($dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca']) ? $dadosRelatorio[$storeCode]['rendimento_executado_osso_pelanca'] / $dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca'] : $dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca'])
-                ;
+                $dadosRelatorio[$storeCode]['base_calc_rank'] = !empty($dadosRelatorio[$storeCode]['rendimento_esperado_total']) ? $dadosRelatorio[$storeCode]['total_entradas_rs'] / $dadosRelatorio[$storeCode]['rendimento_esperado_total'] : 0;
 
                 if ( $dadosRelatorio[$storeCode]['encerramento'] < $dma['date_accounting']->format('Y-m-d') ){
                     $dadosRelatorio[$storeCode]['encerramento'] = $dma['date_accounting']->format('Y-m-d');
                 }
+
+                //echo "--------------------------------------------------<br>";
 
             }// End foreach
     
@@ -328,19 +384,19 @@ class ResultsController extends AppController
                     'rendimento_esperado_primeira' => 0,
                     'rendimento_esperado_segunda' => 0,
                     'rendimento_esperado_osso_pelanca' => 0,
-                    'rendimento_esperado_osso_descarte' => 0,
+                    //'rendimento_esperado_osso_descarte' => 0,
                     'rendimento_executado_primeira' => 0,
                     'rendimento_executado_segunda' => 0,
                     'rendimento_executado_osso_pelanca' => 0,
-                    'rendimento_executado_osso_descarte' => 0,
+                    //'rendimento_executado_osso_descarte' => 0,
                     'rendimento_dif_primeira' => 0,
                     'rendimento_dif_segunda' => 0,
                     'rendimento_dif_osso_pelanca' => 0,
-                    'rendimento_dif_osso_descarte' => 0,
+                    //'rendimento_dif_osso_descarte' => 0,
                     'custo_med_primeira' => 0,
                     'custo_med_segunda' => 0,
                     'custo_med_osso_pelanca' => 0,
-                    'custo_med_osso_descarte' => 0,
+                    //'custo_med_osso_descarte' => 0,
                     'encerramento' => '2000-01-01',
                     'base_calc_rank' => 0,
                     'posicao_rank' => 1,
@@ -399,17 +455,17 @@ class ResultsController extends AppController
                 $espectativa_primeira_porc = $espectativa['prime'] ? $espectativa['prime']/100 : 0;
                 $espectativa_segunda_porc = $espectativa['second'] ? $espectativa['second']/100 : 0;
                 $espectativa_osso_pelanca_porc = $espectativa['bones_skin'] ? $espectativa['bones_skin']/100 : 0;
-                $espectativa_osso_descarte_porc = $espectativa['bones_discard'] && $espectativa['bones_discard'] > 0 ? $espectativa['bones_discard']/100 : 0;
+                //$espectativa_osso_descarte_porc = $espectativa['bones_discard'] && $espectativa['bones_discard'] > 0 ? $espectativa['bones_discard']/100 : 0;
 
                 $espectativa_primeira = $dma_qtd * $espectativa_primeira_porc;
                 $espectativa_segunda = $dma_qtd * $espectativa_segunda_porc;
                 $espectativa_osso_pelanca = $dma_qtd * $espectativa_osso_pelanca_porc;
-                $espectativa_osso_descarte = $dma_qtd * $espectativa_osso_descarte_porc;
+                //$espectativa_osso_descarte = $dma_qtd * $espectativa_osso_descarte_porc;
 
                 $dadosRelatorio[$storeCode]['rendimento_esperado_primeira'] += $espectativa_primeira * $valor_mercadoria;
                 $dadosRelatorio[$storeCode]['rendimento_esperado_segunda'] += $espectativa_segunda * $valor_mercadoria;
                 $dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca'] += $espectativa_osso_pelanca * $valor_mercadoria;
-                $dadosRelatorio[$storeCode]['rendimento_esperado_osso_descarte'] += $espectativa_osso_descarte * $valor_mercadoria;
+                //$dadosRelatorio[$storeCode]['rendimento_esperado_osso_descarte'] += $espectativa_osso_descarte * $valor_mercadoria;
 
             }
 
@@ -474,10 +530,10 @@ class ResultsController extends AppController
                     $dadosRelatorio[$storeCode]['custo_med_osso_pelanca'] =  $valor_mercadoria;
                 }
 
-                else if ( $cutout_type == "Osso a Descarte" ) {
+                /*else if ( $cutout_type == "Osso a Descarte" ) {
                     $dadosRelatorio[$storeCode]['rendimento_executado_osso_descarte'] += $dma_qtd * $valor_mercadoria;
                     $dadosRelatorio[$storeCode]['custo_med_osso_descarte'] =  $valor_mercadoria;
-                }
+                }*/
         
             }
 
@@ -489,7 +545,7 @@ class ResultsController extends AppController
             $dadosRelatorio[$storeCode]['rendimento_dif_primeira'] = $dadosRelatorio[$storeCode]['rendimento_executado_primeira']-$dadosRelatorio[$storeCode]['rendimento_esperado_primeira'];
             $dadosRelatorio[$storeCode]['rendimento_dif_segunda'] = $dadosRelatorio[$storeCode]['rendimento_executado_segunda']-$dadosRelatorio[$storeCode]['rendimento_esperado_segunda'];
             $dadosRelatorio[$storeCode]['rendimento_dif_osso_pelanca'] = $dadosRelatorio[$storeCode]['rendimento_executado_osso_pelanca']-$dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca'];
-            $dadosRelatorio[$storeCode]['rendimento_dif_osso_descarte'] = $dadosRelatorio[$storeCode]['rendimento_executado_osso_descarte']-$dadosRelatorio[$storeCode]['rendimento_esperado_osso_descarte'];
+            //$dadosRelatorio[$storeCode]['rendimento_dif_osso_descarte'] = $dadosRelatorio[$storeCode]['rendimento_executado_osso_descarte']-$dadosRelatorio[$storeCode]['rendimento_esperado_osso_descarte'];
 
             $dadosRelatorio[$storeCode]['base_calc_rank'] += 
                 (!empty($dadosRelatorio[$storeCode]['rendimento_esperado_primeira']) ? $dadosRelatorio[$storeCode]['rendimento_executado_primeira'] / $dadosRelatorio[$storeCode]['rendimento_esperado_primeira'] : $dadosRelatorio[$storeCode]['rendimento_executado_primeira'])
