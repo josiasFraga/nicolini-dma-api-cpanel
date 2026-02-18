@@ -114,13 +114,13 @@ $storeCodes = ['all' => 'Selecionar Todas'] + $storeCodes;
                         <tr>
                             <td class="text-center"><?= $dado['loja'] ?></td>
 
-                            <td class="text-center"><?= $dado['total_saidas_kg'] ?></td>
+                            <td class="text-center"><?= number_format($dado['total_saidas_kg'],2,',','.') ?></td>
                             <td class="text-center"><?= number_format($dado['total_saidas_rs'],2,',','.') ?></td>
 
-                            <td class="text-center"><?= $dado['total_entradas_kg'] ?></td>
+                            <td class="text-center"><?= number_format($dado['total_entradas_kg'],2,',','.') ?></td>
                             <td class="text-center"><?= number_format($dado['total_entradas_rs'],2,',','.') ?></td>
 
-                            <td class="text-center"><?= $dado['diferenca_saidas_entradas_kg'] ?></td>
+                            <td class="text-center"><?= number_format($dado['diferenca_saidas_entradas_kg'],2,',','.') ?></td>
                             <td class="text-center"><?= number_format($dado['diferenca_saidas_entradas_rs'],2,',','.') ?></td>
 
                             <td class="text-center"><?= number_format($dado['custo_med_primeira'],2,',','.') ?></td>
