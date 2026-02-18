@@ -29,7 +29,7 @@ $storeCodes = ['all' => 'Selecionar Todas'] + $storeCodes;
           <div class="table-responsive" id="printContent">
             <?= $this->Form->create(null, ['url' => ['action' => 'index'], 'role' => 'form']); ?>
             <div class="form-row align-items-center mb-3">
-              <div class="col-auto">
+              <div class="col-6">
               <?= $this->Form->control('store_codes', [
                     'type' => 'select',
                     'options' => $storeCodes,
@@ -41,10 +41,13 @@ $storeCodes = ['all' => 'Selecionar Todas'] + $storeCodes;
                     'value' => $selectedStoreCodes
                 ]); ?>
               </div>
-              <div class="col-auto">
-                <?= $this->Form->control('date_accounting', ['type' => 'date', 'class' => 'form-control', 'label' => 'Data para Contabilização', 'value' => $dateAccounting]) ?>
+              <div class="col-2">
+                <?= $this->Form->control('start_date', ['type' => 'date', 'class' => 'form-control', 'label' => 'Data Inicial', 'value' => $startDate]) ?>
               </div>
-              <div class="col-auto">
+              <div class="col-2">
+                <?= $this->Form->control('end_date', ['type' => 'date', 'class' => 'form-control', 'label' => 'Data Final', 'value' => $endDate]) ?>
+              </div>
+              <div class="col-2">
                 <br />
                 <?= $this->Form->button(__('Filtrar'), ['class' => 'btn btn-primary']) ?>
               </div>
@@ -69,7 +72,9 @@ $storeCodes = ['all' => 'Selecionar Todas'] + $storeCodes;
                     <th colspan="4" class="text-center">OSSO A DESCARTE</th>
      
                     <th rowspan="2" class="text-center">Posição Rank</th>
+                    <?php if ($startDate == $endDate): ?>
                     <th rowspan="2" class="text-center">Finalizado por</th>
+                    <?php endif; ?>
                 </tr>
                 <!-- Linha de cabeçalho existente -->
                 <tr>
@@ -139,7 +144,9 @@ $storeCodes = ['all' => 'Selecionar Todas'] + $storeCodes;
                             <td class="text-center"><?= number_format($dado['rendimento_dif_osso_descarte'],2,',','.') ?></td>
 
                             <td class="text-center"><?= $dado['posicao_rank'] ?></td>
+                            <?php if ($startDate == $endDate): ?>
                             <td class="text-center"><?= $dado['finalizado_por'] ?></td>
+                            <?php endif; ?>
                         </tr>
                         <?php endforeach; ?>
                   </tbody>

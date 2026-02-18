@@ -38,8 +38,8 @@ class ResultsController extends AppController
 
     public function index()
     {
-
-        $dateAccounting = date('d/m/Y');
+        $startDate = date('Y-m-d');
+        $endDate = date('Y-m-d');
         $dadosRelatorio = [];
         for ($i = 1; $i <= 29; $i++) {
             $storeCodes[sprintf('%03d', $i)] = sprintf('%03d', $i);
@@ -52,7 +52,8 @@ class ResultsController extends AppController
         if ($this->request->is('post')) {
 
             $selectedStoreCodes = $this->request->getData('store_codes');
-            $dateAccounting = $this->request->getData('date_accounting');
+            $startDate = $this->request->getData('start_date');
+            $endDate = $this->request->getData('end_date');
 
             $this->loadModel('StoreCutoutCodes');
             $this->loadModel('Dma');
@@ -63,7 +64,8 @@ class ResultsController extends AppController
                 ->contain(['Mercadorias'])
                 ->where([
                     'Dma.store_code IN' => $selectedStoreCodes,
-                    'Dma.date_accounting' => $dateAccounting,
+                    'Dma.date_accounting >=' => $startDate,
+                    'Dma.date_accounting <=' => $endDate,
                     'Dma.app_product_id' => 1 // Açougue
                 ])
                 ->group([
@@ -275,7 +277,8 @@ class ResultsController extends AppController
         $this->set(compact(
             'dadosRelatorio',
             'selectedStoreCodes',
-            'dateAccounting'
+            'startDate',
+            'endDate'
         ));        
 
     }
