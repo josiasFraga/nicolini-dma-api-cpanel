@@ -185,7 +185,7 @@ $this->assign('title', 'DMA');
 							<option value="user" <?= !empty($filters['sort_field']) && $filters['sort_field'] === 'user' ? 'selected' : '' ?>>Usuário</option>
 							<option value="type" <?= !empty($filters['sort_field']) && $filters['sort_field'] === 'type' ? 'selected' : '' ?>>Tipo</option>
 							<option value="cutout_type" <?= !empty($filters['sort_field']) && $filters['sort_field'] === 'cutout_type' ? 'selected' : '' ?>>Tipo de Corte</option>
-							<option value="mercadoria.tx_descricao" <?= !empty($filters['sort_field']) && $filters['sort_field'] === 'mercadoria.tx_descricao' ? 'selected' : '' ?>>Descrição do Produto</option>
+							<option value="mercadorias.tx_descricao" <?= !empty($filters['sort_field']) && $filters['sort_field'] === 'mercadorias.tx_descricao' ? 'selected' : '' ?>>Descrição do Produto</option>
 							<option value="quantity" <?= !empty($filters['sort_field']) && $filters['sort_field'] === 'quantity' ? 'selected' : '' ?>>Quantidade</option>
 							<option value="cost" <?= !empty($filters['sort_field']) && $filters['sort_field'] === 'cost' ? 'selected' : '' ?>>Custo</option>
 							<option value="total" <?= !empty($filters['sort_field']) && $filters['sort_field'] === 'total' ? 'selected' : '' ?>>Total</option>

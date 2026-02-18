@@ -180,7 +180,7 @@ $this->assign('title', 'DMA');
 							<option value="date_accounting" <?= !empty($filters['sort_field']) && $filters['sort_field'] === 'date_accounting' ? 'selected' : '' ?>>Data de Contabilização</option>
 							<option value="user" <?= !empty($filters['sort_field']) && $filters['sort_field'] === 'user' ? 'selected' : '' ?>>Usuário</option>
 							<option value="type" <?= !empty($filters['sort_field']) && $filters['sort_field'] === 'type' ? 'selected' : '' ?>>Tipo</option>
-							<option value="mercadoria.tx_descricao" <?= !empty($filters['sort_field']) && $filters['sort_field'] === 'mercadoria.tx_descricao' ? 'selected' : '' ?>>Descrição do Produto</option>
+							<option value="mercadorias.tx_descricao" <?= !empty($filters['sort_field']) && $filters['sort_field'] === 'mercadorias.tx_descricao' ? 'selected' : '' ?>>Descrição do Produto</option>
 							<option value="quantity" <?= !empty($filters['sort_field']) && $filters['sort_field'] === 'quantity' ? 'selected' : '' ?>>Quantidade</option>
 						</select>
 					</div>
