@@ -57,7 +57,7 @@
 
 			<li class="nav-item">
 			<a href="<?php echo $this->Url->build('/admin/ranking?sort_field=quantity&sort_order=desc'); ?>" class="nav-link <?= $this->getRequest()->getParam('controller') === 'Ranking' ? 'active' : '' ?>">
-				<p>- Ranking</p>
+				<p>- ABC de acertos</p>
 			</a>
 			</li>
 

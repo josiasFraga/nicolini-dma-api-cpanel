@@ -62,6 +62,10 @@ class RankingController extends AppController
                 'MONTH(Dma.date_accounting)' => $mesAtual,
             ]);
         }
+
+        if ( !empty($filters['product']) ) {
+            $query->where(['Dma.app_product_id' => $filters['product']]);
+        }
     
         // Mesmas expressões CASE
         $costCaseSql = "

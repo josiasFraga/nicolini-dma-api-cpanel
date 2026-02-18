@@ -91,6 +91,15 @@ $this->assign('title', 'DMA');
 				<form id="filterForm" method="get" action="<?= $this->Url->build(['action' => 'index']); ?>">
 					<!-- Campos de Filtro -->
 					<div class="form-group">
+						<label for="product">Produto</label>
+						<select class="form-control" id="product" name="product">
+							<option value="">Selecione</option>
+								<option value="1" <?= isset($filters['product']) && $filters['product'] == "1" ? 'selected' : '' ?>>Açougue</option>
+								<option value="2" <?= isset($filters['product']) && $filters['product'] == "2" ? 'selected' : '' ?>>Horti</option>
+								<option value="3" <?= isset($filters['product']) && $filters['product'] == "3" ? 'selected' : '' ?>>Padaria</option>
+						</select>
+					</div>
+					<div class="form-group">
 						<label for="store">Loja</label>
 						<select class="form-control" id="store" name="store">
 							<option value="">Selecione</option>
