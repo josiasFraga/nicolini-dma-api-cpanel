@@ -68,7 +68,14 @@ $this->assign('title', 'DMA');
 					<td><?= h($dma->cutout_type) ?></td>
 					<td class="text-center"><?= h($dma->good_code) ?></td>
 					<td><?= h($dma->mercadoria->tx_descricao) ?></td>
-					<td class="text-center"><?= $this->Number->format($dma->quantity) ?></td>
+					<td class="text-center">
+						<?= $this->Number->format($dma->quantity) ?>
+						<button type="button" class="btn btn-xs btn-outline-primary edit-quantity-btn ml-2" 
+								data-id="<?= $dma->id ?>" 
+								data-quantity="<?= $dma->quantity ?>">
+							<i class="fa fa-edit"></i>
+						</button>
+					</td>
 					<td class="text-center">R$ <?= number_format($dma->cost, 2, ',', '.') ?></td>
 					<td class="text-center">R$ <?= number_format($dma->total, 2, ',', '.') ?></td>
 					<td class="actions text-center">
@@ -203,6 +210,65 @@ $this->assign('title', 'DMA');
 			<div class="modal-footer">
 				<button type="submit" class="btn btn-primary" form="filterForm">Aplicar</button>
 			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Modal Edit Quantity -->
+<div class="modal fade" id="editQuantityModal" tabindex="-1" role="dialog" aria-labelledby="editQuantityModalLabel" aria-hidden="true">
+	<div class="modal-dialog" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="editQuantityModalLabel">Alterar Quantidade</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<?= $this->Form->create(null, ['id' => 'editQuantityForm', 'url' => ['action' => 'editQuantity']]) ?>
+			<div class="modal-body">
+				<div class="form-group">
+					<label for="editQuantityInput">Quantidade</label>
+					<input type="text" class="form-control" id="editQuantityInput" name="quantity" required maxlength="7">
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+				<button type="submit" class="btn btn-primary">Salvar</button>
+			</div>
+			<?= $this->Form->end() ?>
+		</div>
+	</div>
+</div>
+
+
+<?php $this->Html->scriptStart(['block' => true]); ?>
+    $(document).ready(function() {
+        $('.edit-quantity-btn').on('click', function() {
+            var id = $(this).data('id');
+            var quantity = $(this).data('quantity');
+            var url = '<?= $this->Url->build(['action' => 'editQuantity']) ?>/' + id;
+            
+            $('#editQuantityForm').attr('action', url);
+            // Replace dot with comma for display
+            $('#editQuantityInput').val(String(quantity).replace('.', ','));
+            $('#editQuantityModal').modal('show');
+        });
+
+        $('#editQuantityInput').on('input', function() {
+            var value = $(this).val();
+            // Permite apenas numeros e virgula
+            value = value.replace(/[^0-9,]/g, '');
+             
+            // Garante apenas uma virgula
+            var parts = value.split(',');
+            if (parts.length > 2) {
+                value = parts[0] + ',' + parts.slice(1).join('');
+            }
+             
+            $(this).val(value);
+        });
+    });
+<?php $this->Html->scriptEnd(); ?>
 		</div>
 	</div>
 </div>

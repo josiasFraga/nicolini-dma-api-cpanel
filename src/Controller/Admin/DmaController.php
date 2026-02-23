@@ -33,6 +33,25 @@ class DmaController extends AppController
         return true;
     }
 
+    public function editQuantity($id = null)
+    {
+        $this->request->allowMethod(['post', 'put']);
+        $dma = $this->Dma->get($id);
+        if ($this->request->is(['patch', 'post', 'put'])) {
+            $data = $this->request->getData();
+            if (isset($data['quantity'])) {
+                $data['quantity'] = str_replace(',', '.', $data['quantity']);
+            }
+            $dma = $this->Dma->patchEntity($dma, $data);
+            if ($this->Dma->save($dma)) {
+                $this->Flash->success(__('A quantidade foi salva.'));
+            } else {
+                $this->Flash->error(__('A quantidade não pôde ser salva. Por favor, tente novamente.'));
+            }
+        }
+        return $this->redirect($this->referer(['action' => 'index']));
+    }
+
     public function index()
     {
         // Capturar parâmetros de filtro e ordenação da URL
