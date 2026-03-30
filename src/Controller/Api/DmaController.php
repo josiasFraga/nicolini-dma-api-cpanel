@@ -226,6 +226,30 @@ class DmaController extends AppController
 		});
 	}
 
+	private function resolveMercadoriaCost(string $goodCode): ?float
+	{
+		$this->loadModel('Mercadorias');
+
+		$mercadoria = $this->Mercadorias->find()
+		->select([
+			'opcusto',
+			'customed',
+			'custotab'
+		])
+		->where([
+			'Mercadorias.cd_codigoint' => str_pad($goodCode, 7, "0", STR_PAD_LEFT)
+		])
+		->first();
+
+		if (!$mercadoria) {
+			return null;
+		}
+
+		return $mercadoria->opcusto === 'M'
+			? floatval($mercadoria->customed)
+			: floatval($mercadoria->custotab);
+	}
+
 	public function saveIncome() {
 		$jwtPayload = $this->request->getAttribute('jwtPayload');
 		$userId = $jwtPayload->sub;
@@ -292,6 +316,7 @@ class DmaController extends AppController
 		}
 
 		$good_code = $dados_recorte['cutout_code'];
+		$cost = $this->resolveMercadoriaCost((string)$good_code);
 
 		$check_registered = $this->Dma->find('all')
 		->where([
@@ -309,6 +334,7 @@ class DmaController extends AppController
 			$dados_salvar = $check_registered;
 
 			$dados_salvar->quantity += $kg;
+			$dados_salvar->cost = $cost;
 
 			if ( $dados_salvar->quantity <= 0 ) {
 				$this->Dma->delete($check_registered);
@@ -332,6 +358,7 @@ class DmaController extends AppController
 				'user' => $userId,
 				'date_movement' => date('Y-m-d'),
 				'cutout_type' => $label,
+				'cost' => $cost,
 				'date_accounting' => $date_accounting,
 				'ended' => 'N'
 			];
@@ -1099,170 +1126,26 @@ class DmaController extends AppController
 	}
 
 	private function finishDmaButcher($entradas, $saidas, $ended_by_cron, $ended_by) {
-	
-		$this->loadModel('Mercadorias');
 		$this->loadModel('Dma');
-	
-		$custo_saidas_total = 0;
-		$peso_saidas_total = 0;
 
-		foreach( $saidas as $key => $saida ){
-
-			$good_code = $saida['good_code'];
-			$quantity = $saida['quantity'];
-   
-			$dados_mercadoria = $this->Mercadorias->find('all')
-			->where([
-				'Mercadorias.cd_codigoint' => str_pad($good_code, 7, "0", STR_PAD_LEFT)
-			])
-			->first();
-
-			if ( !$dados_mercadoria ) {
-				return $this->jsonResponse('erro', 'Dados da mercadoria '.$good_code.' não encontrados!');
-			}
-
-			$dados_mercadoria = $dados_mercadoria->toArray();
-
-			$custo_total = 0;
-			if ( $dados_mercadoria['opcusto'] == "M" ) {
-				$custo_total = $saida['quantity'] * $dados_mercadoria['customed'];
-			} else {
-				$custo_total = $saida['quantity'] * $dados_mercadoria['custotab'];
-			}
-
-			$custo_saidas_total += $custo_total;
-			$peso_saidas_total += $saida['quantity'];
-		}
-
-		$custo_saidas_medio = $custo_saidas_total/$peso_saidas_total;
-		$peso_entradas_total = 0;
-		$custo_entradas_total = 0;
-	
-		// Calcula os totais
-		foreach( $entradas as $key => $entrada ){
-
-			$good_code = $saida['good_code'];
-			$quantity = $saida['quantity'];
-			$date_accounting = $saida['date_accounting'];
-			$dateString = date('Y-m-d');
-			$dateToday = new FrozenDate($dateString);
-
-			if ($date_accounting->gt($dateToday)) {
+		$dateToday = new FrozenDate(date('Y-m-d'));
+		foreach (array_merge($entradas, $saidas) as $lancamento) {
+			$dateAccounting = $lancamento['date_accounting'];
+			if ($dateAccounting->gt($dateToday)) {
 				return $this->jsonResponse('erro', 'Você não pode finalizar lançamentos de amanhã.');
 			}
-   
-			$dados_mercadoria = $this->Mercadorias->find('all')
-			->where([
-				'Mercadorias.cd_codigoint' => str_pad($good_code, 7, "0", STR_PAD_LEFT)
-			])
-			->first();
-
-			if ( !$dados_mercadoria ) {
-				return $this->jsonResponse('erro', 'Dados da mercadoria '.$good_code.' não encontrados!');
-			}
-
-			$dados_mercadoria = $dados_mercadoria->toArray();
-
-			$entradas[$key]['good'] = $dados_mercadoria;
-
-			$custo_total = 0;
-			if ( $dados_mercadoria['opcusto'] == "M" ) {
-				$custo_total = $entrada['quantity'] * $dados_mercadoria['customed'];
-			} else {
-				$custo_total = $entrada['quantity'] * $dados_mercadoria['custotab'];
-			}
-
-			$custo_entradas_total += $custo_total;
-			$peso_entradas_total += $entrada['quantity'];
-		}
-
-		$calculos_entradas = [];
-
-		$this->loadModel('StoreCutoutCodes');
-	
-		// Calcula a representatividade
-		foreach( $entradas as $key => $entrada ){
-
-			$good_code = $entrada['good_code'];
-			$store_code = $entrada['store_code'];
-			$label = $entrada['cutout_type'];
-			$quantity = $entrada['quantity'];
-			$date_accounting = $entrada['date_accounting'];
-			$dateString = date('Y-m-d');
-			$dateToday = new FrozenDate($dateString);
-
-			if ($date_accounting->gt($dateToday)) {
-				return $this->jsonResponse('erro', 'Você não pode finalizar lançamentos de amanhã.');
-			}
-
-			$this->loadModel('Dma');
-	
-			$dados_recorte = $this->StoreCutoutCodes->find()
-			->where([
-				'StoreCutoutCodes.store_code' => $store_code,
-				'StoreCutoutCodes.cutout_type' => strtoupper($label)
-			])
-			->first()
-			->toArray();
-
-			$calculos_entradas[$entrada['cutout_type']]['representatividade'] = (100*$quantity)/$peso_entradas_total;
-			$calculos_entradas[$entrada['cutout_type']]['kg'] = $quantity;
-
-			$calculos_entradas[$entrada['cutout_type']]['_cutout_data'] = $dados_recorte;
-
-		}
-
-		$total_saidas_prev = 0;
-		foreach( $calculos_entradas as $key => $calculo ){
-
-			if ( $key == 'Osso e Pelanca') {
-				if ( $calculo['_cutout_data']['atribui_cm_rs'] == 'CM' ) {
-					$calculos_entradas[$key]['custo_total_prev'] = $custo_saidas_medio;
-				} else {
-					$calculos_entradas[$key]['custo_total_prev'] = $calculo['_cutout_data']['atribui_cm_rs'] * $calculo['kg'];
-				}
-			} else {
-				$calculos_entradas[$key]['custo_total_prev'] = $custo_saidas_total*($calculo['representatividade']/100);
-			}
-
-			$total_saidas_prev += $calculos_entradas[$key]['custo_total_prev'];
-		}
-
-		$dif_total_saidas_x_total_entradas_prev = $custo_saidas_total-$total_saidas_prev;
-
-
-		
-		foreach( $calculos_entradas as $key => $calculo ){
-			if ( $key === 'Primeira' ) {
-				$percentage_to_sum = $calculo['_cutout_data']['percent_ad_cm']/100;
-				$value_to_sum = $dif_total_saidas_x_total_entradas_prev * $percentage_to_sum;
-				$calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'] + $value_to_sum;
-				$calculos_entradas[$key]['custo_medio'] = $calculos_entradas[$key]['custo_total']/$calculos_entradas[$key]['kg'];
-			}
-			else if ( $key === 'Segunda' ) {
-				$percentage_to_sum = $calculo['_cutout_data']['percent_ad_cm']/100;
-				$value_to_sum = $dif_total_saidas_x_total_entradas_prev * $percentage_to_sum;
-				$calculos_entradas[$key]['custo_total'] = $calculos_entradas[$key]['custo_total_prev'] + $value_to_sum;
-				$calculos_entradas[$key]['custo_medio'] = $calculos_entradas[$key]['custo_total']/$calculos_entradas[$key]['kg'];
-			} else {
-				
-				if ( $calculo['_cutout_data']['atribui_cm_rs'] == 'CM' ) {
-					$calculos_entradas[$key]['custo_medio'] = $custo_saidas_medio;
-				} else {
-					$calculos_entradas[$key]['custo_medio'] = $calculo['_cutout_data']['atribui_cm_rs'];
-				}
-
-			}
-  
-   
 		}
 
 		$novas_entradas = [];
 		foreach( $entradas as $key => $entrada ){
+			$entradaCost = $entrada['cost'];
+			if ($entradaCost === null) {
+				$entradaCost = $this->resolveMercadoriaCost((string)$entrada['good_code']);
+			}
 
 			$novas_entradas[] = [
 				'id' => $entrada['id'],
-				'cost' => $calculos_entradas[$entrada['cutout_type']]['custo_medio'],
+				'cost' => $entradaCost,
 				'ended' => 'Y',
 				'ended_by_cron' => $ended_by_cron,
 				'ended_by' => $ended_by
