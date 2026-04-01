@@ -250,6 +250,25 @@ class DmaController extends AppController
 			: floatval($mercadoria->custotab);
 	}
 
+	private function resolvePayloadCost(array $data): ?float
+	{
+		if (!empty($data['good']) && is_array($data['good'])) {
+			$good = $data['good'];
+
+			if (isset($good['opcusto'], $good['customed'], $good['custotab'])) {
+				return $good['opcusto'] === 'M'
+					? floatval($good['customed'])
+					: floatval($good['custotab']);
+			}
+		}
+
+		if (empty($data['goodCode'])) {
+			return null;
+		}
+
+		return $this->resolveMercadoriaCost((string)$data['goodCode']);
+	}
+
 	public function saveIncome() {
 		$jwtPayload = $this->request->getAttribute('jwtPayload');
 		$userId = $jwtPayload->sub;
@@ -395,12 +414,14 @@ class DmaController extends AppController
 			return $this->removeQuantity(2, $dados['store_code'], $userId, 'Producao', $dados['goodCode'], $dados['kg']);
 		}
 
+		$cost = $this->resolvePayloadCost($dados);
+
 		$dados_salvar = [
 			'app_product_id' => $app_product_id,
 			'store_code' => $dados['store_code'],
 			'date_movement' => date('Y-m-d'),
 			'date_accounting' => $date_accounting,
-			'cost' => $dados['good']['opcusto'] === 'M' ? floatval($dados['good']['customed']) : floatval($dados['good']['custotab']),
+			'cost' => $cost,
 			'user' => $userId,
 			'type' => 'Producao',
 			'quantity' => $dados['kg'],
@@ -460,12 +481,14 @@ class DmaController extends AppController
 			return $this->removeQuantity(2, $dados['store_code'], $userId, 'Quebra', $dados['goodCode'], $dados['kg']);
 		}
 
+		$cost = $this->resolvePayloadCost($dados);
+
 		$dados_salvar = [
 			'app_product_id' => $app_product_id,
 			'store_code' => $dados['store_code'],
 			'date_movement' => date('Y-m-d'),
 			'date_accounting' => $date_accounting,
-			'cost' => $dados['good']['opcusto'] === 'M' ? floatval($dados['good']['customed']) : floatval($dados['good']['custotab']),
+			'cost' => $cost,
 			'user' => $userId,
 			'type' => 'Quebra',
 			'quantity' => $dados['kg'],
@@ -557,6 +580,7 @@ class DmaController extends AppController
 		}
 
 		$dados['kg'] = (float)$dados['kg'];
+		$cost = $this->resolvePayloadCost($dados);
 
 		$dados_lancados = $this->Dma->find('all')
 		->where([
@@ -575,7 +599,8 @@ class DmaController extends AppController
 		if ( count($dados_lancados) > 0 ) {
 
 			$dados_salvar = $dados_lancados[0];
-			$dados_salvar['quantity']+= $dados['kg'];
+			$dados_salvar->quantity += $dados['kg'];
+			$dados_salvar->cost = $cost;
 			$dma = $dados_salvar;
 
 		} else {
@@ -587,6 +612,7 @@ class DmaController extends AppController
 				'type' => 'Saida',
 				'user' => $userId,
 				'date_movement' => date('Y-m-d'),
+				'cost' => $cost,
 				'date_accounting' => $date_accounting,
 				'ended' => 'N'
 			];
@@ -625,6 +651,7 @@ class DmaController extends AppController
 		foreach( $dados['dados'] AS $key => $dado ) {
 			$dado['kg'] = str_replace(',','.',str_replace('.','',$dado['kg']));
 			$dado['kg'] = (float)$dado['kg'];
+			$cost = $this->resolvePayloadCost($dado);
 
 			if ( $dado['kg'] < 0 ) {
 				$this->removeQuantity(3, $dados['store_code'], $userId, $dado['tipo'], $dado['goodCode'], $dado['kg']);
@@ -638,6 +665,7 @@ class DmaController extends AppController
 					'type' => $dado['tipo'],
 					'user' => $userId,
 					'date_movement' => date('Y-m-d'),
+					'cost' => $cost,
 					'date_accounting' => $date_accounting,
 					'ended' => 'N'
 				];

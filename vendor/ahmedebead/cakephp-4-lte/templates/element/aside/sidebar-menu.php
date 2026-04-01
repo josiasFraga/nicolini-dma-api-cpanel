@@ -12,6 +12,7 @@
 		<li class="nav-item <?php 
 		echo $this->getRequest()->getParam('controller') === 'StoreCutoutCodes' ? 'menu-open' : ''; 
 		echo $this->getRequest()->getParam('controller') === 'ExpectedYield' ? 'menu-open' : '';
+		echo $this->getRequest()->getParam('controller') === 'BakeryMapSells' ? 'menu-open' : '';
 		echo $this->getRequest()->getParam('controller') === 'Dma' && $this->getRequest()->getParam('action') === 'index' ? 'menu-open' : '';
 		echo $this->getRequest()->getParam('controller') === 'Results' ? 'menu-open' : '';
 		echo $this->getRequest()->getParam('controller') === 'DmaConfigurations' ? 'menu-open' : '';
@@ -36,6 +37,12 @@
 			<li class="nav-item">
 			<a href="<?php echo $this->Url->build('/admin/expected-yield'); ?>" class="nav-link <?= $this->getRequest()->getParam('controller') === 'ExpectedYield' ? 'active' : '' ?>">
 				<p>- Expectativa de Rendimento</p>
+			</a>
+			</li>
+
+			<li class="nav-item">
+			<a href="<?php echo $this->Url->build('/admin/bakery-map-sells'); ?>" class="nav-link <?= $this->getRequest()->getParam('controller') === 'BakeryMapSells' ? 'active' : '' ?>">
+				<p>- Produtos para Map de Vendas</p>
 			</a>
 			</li>
 

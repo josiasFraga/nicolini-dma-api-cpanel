@@ -15,6 +15,9 @@ $storeCodes['ACC'] = 'ACC';
 
 $storeCodes = ['all' => 'Selecionar Todas'] + $storeCodes;
 
+$firstSecondColumns = $mapSalesDefinitions['first_second'] ?? [];
+$ossoColumns = $mapSalesDefinitions['osso'] ?? [];
+
 ?>
 <!-- Main content -->
 <section class="content">
@@ -73,15 +76,14 @@ $storeCodes = ['all' => 'Selecionar Todas'] + $storeCodes;
                 <tr>
                     <th class="text-center"></th>
                     <th colspan="2" class="text-center">SAÍDAS</th>
-                    <th colspan="4" class="text-center">ENTRADAS</th>
-                    <th colspan="2" class="text-center">DIFERENÇA</th>
-                    <th colspan="4" class="text-center">PRIMEIRA</th>
-                    <th colspan="4" class="text-center">SEGUNDA</th>
-                    <th colspan="4" class="text-center">OSSO E PELANCA</th>
-                    <!--<th colspan="4" class="text-center">OSSO A DESCARTE</th>-->
-     
+                  <th colspan="3" class="text-center">ENTRADAS</th>
+                  <th colspan="3" class="text-center">DIFERENÇA</th>
+                    <th colspan="5" class="text-center">PRIMEIRA</th>
+                    <th colspan="5" class="text-center">SEGUNDA</th>
+                    <th colspan="5" class="text-center">OSSO E PELANCA</th>
                     <th class="text-center"></th>
-                    <th class="text-center"></th>
+                    <th colspan="<?= count($firstSecondColumns) + 1 ?>" class="text-center">MAP VENDAS PRIMEIRA/SEGUNDA</th>
+                    <th colspan="<?= count($ossoColumns) + 1 ?>" class="text-center">MAP VENDAS OSSO E PELANCA</th>
                     <?php if ($startDate == $endDate): ?>
                     <th class="text-center"></th>
                     <?php endif; ?>
@@ -102,28 +104,40 @@ $storeCodes = ['all' => 'Selecionar Todas'] + $storeCodes;
                     <th class="text-center">R$ Previstos</th>
                     <th class="text-center">R$ Realizados</th>
                     <th class="text-center">R$ Diferença</th>
+                    <th class="text-center">Kg</th>
 
                     <th class="text-center">R$ Custo Médio</th>
                     <th class="text-center">R$ Previstos</th>
                     <th class="text-center">R$ Realizados</th>
                     <th class="text-center">R$ Diferença</th>
+                    <th class="text-center">Kg</th>
 
                     <th class="text-center">R$ Custo Médio</th>
                     <th class="text-center">R$ Previstos</th>
                     <th class="text-center">R$ Realizados</th>
                     <th class="text-center">R$ Diferença</th>
-
-                    <!--<th class="text-center">R$ Custo Médio</th>
-                    <th class="text-center">R$ Previstos</th>
-                    <th class="text-center">R$ Realizados</th>
-                    <th class="text-center">R$ Diferença</th>-->
+                    <th class="text-center">Kg</th>
                     <th class="text-center">Posição Rank</th>
-                    <th class="text-center">Kg Vendas</th>
+
+                    <?php foreach ($firstSecondColumns as $column): ?>
+                    <th class="text-center dynamic-sales-header" title="<?= h($column['description']) ?>">
+                      <span class="dynamic-sales-header__name"><?= h($column['description']) ?></span>
+                      <span class="dynamic-sales-header__code"><?= h($column['good_code']) ?></span>
+                    </th>
+                    <?php endforeach; ?>
+                    <th class="text-center">Total</th>
+
+                    <?php foreach ($ossoColumns as $column): ?>
+                    <th class="text-center dynamic-sales-header" title="<?= h($column['description']) ?>">
+                      <span class="dynamic-sales-header__name"><?= h($column['description']) ?></span>
+                      <span class="dynamic-sales-header__code"><?= h($column['good_code']) ?></span>
+                    </th>
+                    <?php endforeach; ?>
+                    <th class="text-center">Total</th>
                     
                     <?php if ($startDate == $endDate): ?>
                     <th class="text-center">Finalizado por</th>
                     <?php endif; ?>
-                    <!-- Células dinâmicas para cada código de retalho -->
               
                 </tr>
             </thead>
@@ -149,24 +163,30 @@ $storeCodes = ['all' => 'Selecionar Todas'] + $storeCodes;
                           <td class="<?= $valueClass($dado['rendimento_esperado_primeira']) ?>"><?= number_format($dado['rendimento_esperado_primeira'],2,',','.') ?></td>
                           <td class="<?= $valueClass($dado['rendimento_executado_primeira']) ?>"><?= number_format($dado['rendimento_executado_primeira'],2,',','.') ?></td>
                           <td class="<?= $valueClass($dado['rendimento_dif_primeira']) ?>"><?= number_format($dado['rendimento_dif_primeira'],2,',','.') ?></td>
+                          <td class="<?= $valueClass($dado['total_kg_primeira']) ?>"><?= number_format($dado['total_kg_primeira'],3,',','.') ?></td>
 
                           <td class="<?= $valueClass($dado['custo_med_segunda']) ?>"><?= number_format($dado['custo_med_segunda'],2,',','.') ?></td>
                           <td class="<?= $valueClass($dado['rendimento_esperado_segunda']) ?>"><?= number_format($dado['rendimento_esperado_segunda'],2,',','.') ?></td>
                           <td class="<?= $valueClass($dado['rendimento_executado_segunda']) ?>"><?= number_format($dado['rendimento_executado_segunda'],2,',','.') ?></td>
                           <td class="<?= $valueClass($dado['rendimento_dif_segunda']) ?>"><?= number_format($dado['rendimento_dif_segunda'],2,',','.') ?></td>
+                          <td class="<?= $valueClass($dado['total_kg_segunda']) ?>"><?= number_format($dado['total_kg_segunda'],3,',','.') ?></td>
 
                           <td class="<?= $valueClass($dado['custo_med_osso_pelanca']) ?>"><?= number_format($dado['custo_med_osso_pelanca'],2,',','.') ?></td>
                           <td class="<?= $valueClass($dado['rendimento_esperado_osso_pelanca']) ?>"><?= number_format($dado['rendimento_esperado_osso_pelanca'],2,',','.') ?></td>
                           <td class="<?= $valueClass($dado['rendimento_executado_osso_pelanca']) ?>"><?= number_format($dado['rendimento_executado_osso_pelanca'],2,',','.') ?></td>
                           <td class="<?= $valueClass($dado['rendimento_dif_osso_pelanca']) ?>"><?= number_format($dado['rendimento_dif_osso_pelanca'],2,',','.') ?></td>
-
-                            <!--<td class="text-center"><?= number_format($dado['custo_med_osso_descarte'],2,',','.') ?></td>
-                            <td class="text-center"><?= number_format($dado['rendimento_esperado_osso_descarte'],2,',','.') ?></td>
-                            <td class="text-center"><?= number_format($dado['rendimento_executado_osso_descarte'],2,',','.') ?></td>
-                            <td class="text-center"><?= number_format($dado['rendimento_dif_osso_descarte'],2,',','.') ?></td>-->
+                          <td class="<?= $valueClass($dado['total_kg_osso_pelanca']) ?>"><?= number_format($dado['total_kg_osso_pelanca'],3,',','.') ?></td>
 
                             <td class="text-center"><?= $dado['posicao_rank'] ?></td>
-                            <td class="<?= $valueClass($dado['total_vendas_kg']) ?>"><?= number_format($dado['total_vendas_kg'],3,',','.') ?></td>
+                            <?php foreach ($firstSecondColumns as $column): ?>
+                            <td class="<?= $valueClass($dado[$column['key']]) ?>"><?= number_format($dado[$column['key']],3,',','.') ?></td>
+                            <?php endforeach; ?>
+                            <td class="<?= $valueClass($dado['map_sales_total_first_second']) ?>"><?= number_format($dado['map_sales_total_first_second'],3,',','.') ?></td>
+
+                            <?php foreach ($ossoColumns as $column): ?>
+                            <td class="<?= $valueClass($dado[$column['key']]) ?>"><?= number_format($dado[$column['key']],3,',','.') ?></td>
+                            <?php endforeach; ?>
+                            <td class="<?= $valueClass($dado['map_sales_total_osso']) ?>"><?= number_format($dado['map_sales_total_osso'],3,',','.') ?></td>
                             <?php if ($startDate == $endDate): ?>
                             <td class="text-center"><?= $dado['finalizado_por'] ?></td>
                             <?php endif; ?>
@@ -191,19 +211,30 @@ $storeCodes = ['all' => 'Selecionar Todas'] + $storeCodes;
                       <td class="<?= $valueClass($totais['rendimento_esperado_primeira']) ?>"><?= number_format($totais['rendimento_esperado_primeira'],2,',','.') ?></td>
                       <td class="<?= $valueClass($totais['rendimento_executado_primeira']) ?>"><?= number_format($totais['rendimento_executado_primeira'],2,',','.') ?></td>
                       <td class="<?= $valueClass($totais['rendimento_dif_primeira']) ?>"><?= number_format($totais['rendimento_dif_primeira'],2,',','.') ?></td>
+                      <td class="<?= $valueClass($totais['total_kg_primeira']) ?>"><?= number_format($totais['total_kg_primeira'],3,',','.') ?></td>
 
                       <td class="<?= $valueClass($totais['custo_med_segunda_media']) ?>"><?= number_format($totais['custo_med_segunda_media'],2,',','.') ?>*</td>
                       <td class="<?= $valueClass($totais['rendimento_esperado_segunda']) ?>"><?= number_format($totais['rendimento_esperado_segunda'],2,',','.') ?></td>
                       <td class="<?= $valueClass($totais['rendimento_executado_segunda']) ?>"><?= number_format($totais['rendimento_executado_segunda'],2,',','.') ?></td>
                       <td class="<?= $valueClass($totais['rendimento_dif_segunda']) ?>"><?= number_format($totais['rendimento_dif_segunda'],2,',','.') ?></td>
+                      <td class="<?= $valueClass($totais['total_kg_segunda']) ?>"><?= number_format($totais['total_kg_segunda'],3,',','.') ?></td>
 
                       <td class="<?= $valueClass($totais['custo_med_osso_pelanca_media']) ?>"><?= number_format($totais['custo_med_osso_pelanca_media'],2,',','.') ?>*</td>
                       <td class="<?= $valueClass($totais['rendimento_esperado_osso_pelanca']) ?>"><?= number_format($totais['rendimento_esperado_osso_pelanca'],2,',','.') ?></td>
                       <td class="<?= $valueClass($totais['rendimento_executado_osso_pelanca']) ?>"><?= number_format($totais['rendimento_executado_osso_pelanca'],2,',','.') ?></td>
                       <td class="<?= $valueClass($totais['rendimento_dif_osso_pelanca']) ?>"><?= number_format($totais['rendimento_dif_osso_pelanca'],2,',','.') ?></td>
+                      <td class="<?= $valueClass($totais['total_kg_osso_pelanca']) ?>"><?= number_format($totais['total_kg_osso_pelanca'],3,',','.') ?></td>
 
                         <td class="text-center"></td>
-                      <td class="<?= $valueClass($totais['total_vendas_kg']) ?>"><?= number_format($totais['total_vendas_kg'],3,',','.') ?></td>
+                        <?php foreach ($firstSecondColumns as $column): ?>
+                        <td class="<?= $valueClass($totais[$column['key']]) ?>"><?= number_format($totais[$column['key']],3,',','.') ?></td>
+                        <?php endforeach; ?>
+                        <td class="<?= $valueClass($totais['map_sales_total_first_second']) ?>"><?= number_format($totais['map_sales_total_first_second'],3,',','.') ?></td>
+
+                        <?php foreach ($ossoColumns as $column): ?>
+                        <td class="<?= $valueClass($totais[$column['key']]) ?>"><?= number_format($totais[$column['key']],3,',','.') ?></td>
+                        <?php endforeach; ?>
+                        <td class="<?= $valueClass($totais['map_sales_total_osso']) ?>"><?= number_format($totais['map_sales_total_osso'],3,',','.') ?></td>
                         <?php if ($startDate == $endDate): ?>
                         <td class="text-center"></td>
                         <?php endif; ?>
@@ -292,5 +323,29 @@ document.getElementById("printButton").addEventListener("click", function() {
   .negative-value {
     color: #dc3545;
     font-weight: 700;
+  }
+
+  .dynamic-sales-header {
+    min-width: 110px;
+    max-width: 110px;
+    vertical-align: top;
+  }
+
+  .dynamic-sales-header__name {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+    line-height: 1.2;
+    font-weight: 600;
+  }
+
+  .dynamic-sales-header__code {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    line-height: 1.2;
   }
 </style>

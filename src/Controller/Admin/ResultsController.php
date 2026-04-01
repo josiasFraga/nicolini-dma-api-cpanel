@@ -6,6 +6,7 @@ namespace App\Controller\Admin;
 use App\Controller\AppController;
 
 use Cake\Event\EventInterface;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -51,45 +52,118 @@ class ResultsController extends AppController
         return $storeCodes;
     }
 
-    private function getEmptyReportRow(string $storeCode): array
+    private function getMapSalesValueKeys(array $mapSalesDefinitions): array
     {
-        return [
+        $keys = [];
+
+        foreach (['first_second', 'osso'] as $group) {
+            foreach ($mapSalesDefinitions[$group] as $definition) {
+                $keys[$definition['key']] = 0;
+            }
+        }
+
+        $keys['map_sales_total_first_second'] = 0;
+        $keys['map_sales_total_osso'] = 0;
+
+        return $keys;
+    }
+
+    private function loadBakeryMapSalesDefinitions(): array
+    {
+        $this->loadModel('DmaBakeryMapSells');
+
+        $mapSells = $this->DmaBakeryMapSells->find()
+            ->contain(['Mercadorias'])
+            ->all()
+            ->toList();
+
+        usort($mapSells, function ($left, $right) {
+            $typeOrder = [
+                'Primeira' => 1,
+                'Segunda' => 2,
+                'Osso e Pelanca' => 3,
+            ];
+
+            $leftType = $typeOrder[$left->type] ?? 99;
+            $rightType = $typeOrder[$right->type] ?? 99;
+
+            if ($leftType !== $rightType) {
+                return $leftType <=> $rightType;
+            }
+
+            return strcmp((string)$left->good_code, (string)$right->good_code);
+        });
+
+        $definitions = [
+            'first_second' => [],
+            'osso' => [],
+        ];
+
+        foreach ($mapSells as $mapSell) {
+            $normalizedCode = $this->normalizeGoodCode((string)$mapSell->good_code);
+            $keySuffix = strtolower(str_replace(' ', '_', (string)$mapSell->type));
+            $definition = [
+                'key' => 'map_sale_' . $normalizedCode . '_' . $keySuffix,
+                'good_code' => (string)$mapSell->good_code,
+                'type' => (string)$mapSell->type,
+                'description' => (string)($mapSell->mercadoria->tx_descricao ?? ''),
+            ];
+
+            if ($mapSell->type === 'Osso e Pelanca') {
+                $definitions['osso'][] = $definition;
+                continue;
+            }
+
+            $definitions['first_second'][] = $definition;
+        }
+
+        return $definitions;
+    }
+
+    private function getEmptyReportRow(string $storeCode, array $mapSalesDefinitions): array
+    {
+        return array_merge([
             'total_saidas_kg' => 0,
             'total_saidas_rs' => 0,
             'total_entradas_kg' => 0,
             'total_entradas_rs' => 0,
-            'total_vendas_kg' => 0,
             'diferenca_saidas_entradas_kg' => 0,
             'diferenca_saidas_entradas_rs' => 0,
             'rendimento_esperado_primeira' => 0,
             'rendimento_esperado_segunda' => 0,
             'rendimento_esperado_osso_pelanca' => 0,
+            'rendimento_esperado_osso_descarte' => 0,
             'rendimento_executado_primeira' => 0,
             'rendimento_executado_segunda' => 0,
             'rendimento_executado_osso_pelanca' => 0,
+            'rendimento_executado_osso_descarte' => 0,
+            'total_kg_primeira' => 0,
+            'total_kg_segunda' => 0,
+            'total_kg_osso_pelanca' => 0,
             'rendimento_dif_primeira' => 0,
             'rendimento_dif_segunda' => 0,
             'rendimento_dif_osso_pelanca' => 0,
+            'rendimento_dif_osso_descarte' => 0,
             'rendimento_esperado_total' => 0,
             'custo_med_primeira' => 0,
             'custo_med_segunda' => 0,
             'custo_med_osso_pelanca' => 0,
+            'custo_med_osso_descarte' => 0,
             'encerramento' => '2000-01-01',
             'base_calc_rank' => 0,
             'posicao_rank' => 1,
             'loja' => $storeCode,
             'finalizado_por' => '',
-        ];
+        ], $this->getMapSalesValueKeys($mapSalesDefinitions));
     }
 
-    private function getInitialTotals(): array
+    private function getInitialTotals(array $mapSalesDefinitions): array
     {
-        return [
+        return array_merge([
             'total_saidas_kg' => 0,
             'total_saidas_rs' => 0,
             'total_entradas_kg' => 0,
             'total_entradas_rs' => 0,
-            'total_vendas_kg' => 0,
             'rendimento_esperado_total' => 0,
             'percentual_atingido_acumulado' => 0,
             'atingida_media' => 0,
@@ -99,18 +173,95 @@ class ResultsController extends AppController
             'custo_med_primeira_media' => 0,
             'rendimento_esperado_primeira' => 0,
             'rendimento_executado_primeira' => 0,
+            'total_kg_primeira' => 0,
             'rendimento_dif_primeira' => 0,
             'custo_med_segunda_acumulado' => 0,
             'custo_med_segunda_media' => 0,
             'rendimento_esperado_segunda' => 0,
             'rendimento_executado_segunda' => 0,
+            'total_kg_segunda' => 0,
             'rendimento_dif_segunda' => 0,
             'custo_med_osso_pelanca_acumulado' => 0,
             'custo_med_osso_pelanca_media' => 0,
             'rendimento_esperado_osso_pelanca' => 0,
             'rendimento_executado_osso_pelanca' => 0,
+            'total_kg_osso_pelanca' => 0,
             'rendimento_dif_osso_pelanca' => 0,
-        ];
+        ], $this->getMapSalesValueKeys($mapSalesDefinitions));
+    }
+
+    private function resolveMercadoriaFallbackCost($mercadoria): float
+    {
+        if (!$mercadoria) {
+            return 0.0;
+        }
+
+        if (($mercadoria['opcusto'] ?? null) === 'M') {
+            return (float)($mercadoria['customed'] ?? 0);
+        }
+
+        return (float)($mercadoria['custotab'] ?? 0);
+    }
+
+    private function resolveDmaEffectiveCost($dma): float
+    {
+        $storedCost = $dma['cost'] ?? null;
+
+        if ($storedCost !== null && $storedCost !== '') {
+            return (float)$storedCost;
+        }
+
+        return $this->resolveMercadoriaFallbackCost($dma['mercadoria'] ?? null);
+    }
+
+    private function loadCutoutAverageCostsByStore(array $selectedStoreCodes, string $startDate, string $endDate): array
+    {
+        $entries = $this->Dma->find()
+            ->contain(['Mercadorias'])
+            ->where([
+                'Dma.store_code IN' => $selectedStoreCodes,
+                'Dma.date_accounting >=' => $startDate,
+                'Dma.date_accounting <=' => $endDate,
+                'Dma.app_product_id' => 1,
+                'Dma.type' => 'Entrada',
+                'Dma.cutout_type IN' => ['Primeira', 'Segunda', 'Osso e Pelanca'],
+            ])
+            ->toArray();
+
+        $weightedTotals = [];
+        foreach ($entries as $entry) {
+            $storeCode = (string)$entry['store_code'];
+            $cutoutType = (string)$entry['cutout_type'];
+            $cost = $this->resolveDmaEffectiveCost($entry);
+            $quantity = (float)$entry['quantity'];
+
+            if ($cutoutType === '' || $quantity <= 0) {
+                continue;
+            }
+
+            if (!isset($weightedTotals[$storeCode][$cutoutType])) {
+                $weightedTotals[$storeCode][$cutoutType] = [
+                    'total_cost_quantity' => 0.0,
+                    'total_quantity' => 0.0,
+                ];
+            }
+
+            $weightedTotals[$storeCode][$cutoutType]['total_cost_quantity'] += $cost * $quantity;
+            $weightedTotals[$storeCode][$cutoutType]['total_quantity'] += $quantity;
+        }
+
+        $averages = [];
+        foreach ($weightedTotals as $storeCode => $cutoutData) {
+            foreach ($cutoutData as $cutoutType => $totals) {
+                if ($totals['total_quantity'] <= 0) {
+                    continue;
+                }
+
+                $averages[$storeCode][$cutoutType] = $totals['total_cost_quantity'] / $totals['total_quantity'];
+            }
+        }
+
+        return $averages;
     }
 
     private function normalizeSelectedStoreCodes(array $selectedStoreCodes, array $storeCodes): array
@@ -122,29 +273,31 @@ class ResultsController extends AppController
         return array_values(array_intersect($selectedStoreCodes, array_values($storeCodes)));
     }
 
-    private function buildReportData(array $selectedStoreCodes, string $startDate, string $endDate): array
+    private function populateMapSalesForStore(array &$reportRow, string $storeCode, array $salesTotals, array $mapSalesDefinitions): void
+    {
+        foreach ($mapSalesDefinitions['first_second'] as $definition) {
+            $value = $this->getSaleTotalByProduct($salesTotals, $storeCode, $definition['good_code']);
+            $reportRow[$definition['key']] = $value;
+            $reportRow['map_sales_total_first_second'] += $value;
+        }
+
+        foreach ($mapSalesDefinitions['osso'] as $definition) {
+            $value = $this->getSaleTotalByProduct($salesTotals, $storeCode, $definition['good_code']);
+            $reportRow[$definition['key']] = $value;
+            $reportRow['map_sales_total_osso'] += $value;
+        }
+    }
+
+    private function buildReportData(array $selectedStoreCodes, string $startDate, string $endDate, array $mapSalesDefinitions): array
     {
         $dadosRelatorio = [];
-        $totais = $this->getInitialTotals();
+        $totais = $this->getInitialTotals($mapSalesDefinitions);
 
-        $this->loadModel('StoreCutoutCodes');
         $this->loadModel('Dma');
-        $this->loadModel('Mercadorias');
         $this->loadModel('ExpectedYield');
 
         $salesTotals = $this->loadSalesTotals($selectedStoreCodes, $startDate, $endDate);
-        $countedSalesByStore = [];
-
-        $codigos_de_recortes = $this->Dma->find()
-            ->contain(['Mercadorias'])
-            ->distinct(['cutout_type'])
-            ->where([
-                'Dma.app_product_id' => 1,
-            ])
-            ->group([
-                'Dma.cutout_type',
-            ])
-            ->toArray();
+        $cutoutAverageCosts = $this->loadCutoutAverageCostsByStore($selectedStoreCodes, $startDate, $endDate);
 
         $query = $this->Dma->find()
             ->contain(['Mercadorias'])
@@ -162,35 +315,16 @@ class ResultsController extends AppController
         foreach ($query as $dma) {
             $storeCode = $dma['store_code'];
             if (!isset($dadosRelatorio[$storeCode])) {
-                $dadosRelatorio[$storeCode] = $this->getEmptyReportRow($storeCode);
-                $countedSalesByStore[$storeCode] = [];
+                $dadosRelatorio[$storeCode] = $this->getEmptyReportRow($storeCode, $mapSalesDefinitions);
+                $dadosRelatorio[$storeCode]['custo_med_primeira'] = (float)($cutoutAverageCosts[$storeCode]['Primeira'] ?? 0);
+                $dadosRelatorio[$storeCode]['custo_med_segunda'] = (float)($cutoutAverageCosts[$storeCode]['Segunda'] ?? 0);
+                $dadosRelatorio[$storeCode]['custo_med_osso_pelanca'] = (float)($cutoutAverageCosts[$storeCode]['Osso e Pelanca'] ?? 0);
+                $this->populateMapSalesForStore($dadosRelatorio[$storeCode], $storeCode, $salesTotals, $mapSalesDefinitions);
             }
-
-            foreach ($codigos_de_recortes as $dmaLoop) {
-                $valorMercadoria = 0;
-
-                if ($dmaLoop['mercadoria']['opcusto'] == 'M') {
-                    $valorMercadoria = $dmaLoop['mercadoria']['customed'];
-                } else {
-                    $valorMercadoria = $dmaLoop['mercadoria']['custotab'];
-                }
-
-                if ($dmaLoop['cutout_type'] == 'Primeira') {
-                    $dadosRelatorio[$storeCode]['custo_med_primeira'] = $valorMercadoria;
-                } elseif ($dmaLoop['cutout_type'] == 'Segunda') {
-                    $dadosRelatorio[$storeCode]['custo_med_segunda'] = $valorMercadoria;
-                } elseif ($dmaLoop['cutout_type'] == 'Osso e Pelanca') {
-                    $dadosRelatorio[$storeCode]['custo_med_osso_pelanca'] = $valorMercadoria;
-                }
-            }
-
-            $cutoutCodes = $this->StoreCutoutCodes->find()->where([
-                'StoreCutoutCodes.store_code' => $storeCode,
-            ]);
 
             $tipoDma = $dma['type'];
             $dmaQtd = $dma['quantity'];
-            $dmaCost = $dma['cost'];
+            $dmaCost = $this->resolveDmaEffectiveCost($dma);
 
             if ($dma['ended'] === 'N') {
                 $dadosRelatorio[$storeCode]['finalizado_por'] = 'em andamento';
@@ -198,27 +332,14 @@ class ResultsController extends AppController
                 $dadosRelatorio[$storeCode]['finalizado_por'] = $dma['ended_by'];
             }
 
-            $normalizedGoodCode = $this->normalizeGoodCode((string)$dma['good_code']);
-            if ($normalizedGoodCode !== '' && !isset($countedSalesByStore[$storeCode][$normalizedGoodCode])) {
-                $dadosRelatorio[$storeCode]['total_vendas_kg'] += $this->getSaleTotalByProduct($salesTotals, $storeCode, (string)$dma['good_code']);
-                $countedSalesByStore[$storeCode][$normalizedGoodCode] = true;
-            }
-
             if ($tipoDma == 'Saida') {
                 $dadosRelatorio[$storeCode]['total_saidas_kg'] += $dmaQtd;
-                $valorMercadoria = 0;
-
-                if ($dma['mercadoria']['opcusto'] == 'M') {
-                    $valorMercadoria = $dma['mercadoria']['customed'];
-                } else {
-                    $valorMercadoria = $dma['mercadoria']['custotab'];
-                }
-
-                $dadosRelatorio[$storeCode]['total_saidas_rs'] += $dmaQtd * $valorMercadoria;
+                $dadosRelatorio[$storeCode]['total_saidas_rs'] += $dmaQtd * $dmaCost;
 
                 $espectativa = $this->ExpectedYield->find()
                     ->where([
                         'ExpectedYield.good_code' => floatval($dma['good_code']),
+                        'ExpectedYield.store_code' => $storeCode,
                     ])
                     ->first();
 
@@ -240,44 +361,30 @@ class ResultsController extends AppController
                 $dadosRelatorio[$storeCode]['rendimento_esperado_primeira'] += $espectativaPrimeira * $dadosRelatorio[$storeCode]['custo_med_primeira'];
                 $dadosRelatorio[$storeCode]['rendimento_esperado_segunda'] += $espectativaSegunda * $dadosRelatorio[$storeCode]['custo_med_segunda'];
                 $dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca'] += $espectativaOssoPelanca * $dadosRelatorio[$storeCode]['custo_med_osso_pelanca'];
+
+                /*debug($dma['good_code']);
+                debug($espectativa);
+                debug($dmaQtd);
+                debug($espectativaSegunda);
+                debug($dadosRelatorio[$storeCode]['rendimento_esperado_primeira']);
+                debug($dadosRelatorio[$storeCode]['custo_med_primeira']);
+                die();*/
             } elseif ($tipoDma == 'Entrada') {
                 $dadosRelatorio[$storeCode]['total_entradas_kg'] += $dmaQtd;
 
                 $cutoutType = $dma['cutout_type'];
-                $cutCode = array_values(array_filter($cutoutCodes->toArray(), function ($cc) use ($cutoutType) {
-                    return $cc['cutout_type'] == strtoupper($cutoutType);
-                }))[0]['cutout_code'];
 
-                $cutCode = str_pad($cutCode, 7, '0', STR_PAD_LEFT);
-
-                if (1 == 2) {
-                    $valorMercadoria = $dmaCost;
-                } else {
-                    $dadosMercadoria = $this->Mercadorias->find()
-                        ->select([
-                            'tx_descricao',
-                            'customed',
-                            'custotab',
-                            'opcusto',
-                        ])
-                        ->where([
-                            'Mercadorias.cd_codigoint' => $cutCode,
-                        ])->first()
-                        ->toArray();
-
-                    $valorMercadoria = $dadosMercadoria['opcusto'] == 'M'
-                        ? $dadosMercadoria['customed']
-                        : $dadosMercadoria['custotab'];
-                }
-
-                $dadosRelatorio[$storeCode]['total_entradas_rs'] += $dmaQtd * $valorMercadoria;
+                $dadosRelatorio[$storeCode]['total_entradas_rs'] += $dmaQtd * $dmaCost;
 
                 if ($cutoutType == 'Primeira') {
-                    $dadosRelatorio[$storeCode]['rendimento_executado_primeira'] += $dmaQtd * $valorMercadoria;
+                    $dadosRelatorio[$storeCode]['total_kg_primeira'] += $dmaQtd;
+                    $dadosRelatorio[$storeCode]['rendimento_executado_primeira'] += $dmaQtd * $dmaCost;
                 } elseif ($cutoutType == 'Segunda') {
-                    $dadosRelatorio[$storeCode]['rendimento_executado_segunda'] += $dmaQtd * $valorMercadoria;
+                    $dadosRelatorio[$storeCode]['total_kg_segunda'] += $dmaQtd;
+                    $dadosRelatorio[$storeCode]['rendimento_executado_segunda'] += $dmaQtd * $dmaCost;
                 } elseif ($cutoutType == 'Osso e Pelanca') {
-                    $dadosRelatorio[$storeCode]['rendimento_executado_osso_pelanca'] += $dmaQtd * $valorMercadoria;
+                    $dadosRelatorio[$storeCode]['total_kg_osso_pelanca'] += $dmaQtd;
+                    $dadosRelatorio[$storeCode]['rendimento_executado_osso_pelanca'] += $dmaQtd * $dmaCost;
                 }
             }
 
@@ -317,7 +424,6 @@ class ResultsController extends AppController
             $totais['total_saidas_rs'] += $dado['total_saidas_rs'];
             $totais['total_entradas_kg'] += $dado['total_entradas_kg'];
             $totais['total_entradas_rs'] += $dado['total_entradas_rs'];
-            $totais['total_vendas_kg'] += $dado['total_vendas_kg'];
             $totais['rendimento_esperado_total'] += $dado['rendimento_esperado_total'];
 
             $percentual = 0;
@@ -331,15 +437,29 @@ class ResultsController extends AppController
             $totais['custo_med_primeira_acumulado'] += $dado['custo_med_primeira'];
             $totais['rendimento_esperado_primeira'] += $dado['rendimento_esperado_primeira'];
             $totais['rendimento_executado_primeira'] += $dado['rendimento_executado_primeira'];
+            $totais['total_kg_primeira'] += $dado['total_kg_primeira'];
             $totais['rendimento_dif_primeira'] += $dado['rendimento_dif_primeira'];
             $totais['custo_med_segunda_acumulado'] += $dado['custo_med_segunda'];
             $totais['rendimento_esperado_segunda'] += $dado['rendimento_esperado_segunda'];
             $totais['rendimento_executado_segunda'] += $dado['rendimento_executado_segunda'];
+            $totais['total_kg_segunda'] += $dado['total_kg_segunda'];
             $totais['rendimento_dif_segunda'] += $dado['rendimento_dif_segunda'];
             $totais['custo_med_osso_pelanca_acumulado'] += $dado['custo_med_osso_pelanca'];
             $totais['rendimento_esperado_osso_pelanca'] += $dado['rendimento_esperado_osso_pelanca'];
             $totais['rendimento_executado_osso_pelanca'] += $dado['rendimento_executado_osso_pelanca'];
+            $totais['total_kg_osso_pelanca'] += $dado['total_kg_osso_pelanca'];
             $totais['rendimento_dif_osso_pelanca'] += $dado['rendimento_dif_osso_pelanca'];
+
+            foreach ($mapSalesDefinitions['first_second'] as $definition) {
+                $totais[$definition['key']] += $dado[$definition['key']];
+            }
+
+            foreach ($mapSalesDefinitions['osso'] as $definition) {
+                $totais[$definition['key']] += $dado[$definition['key']];
+            }
+
+            $totais['map_sales_total_first_second'] += $dado['map_sales_total_first_second'];
+            $totais['map_sales_total_osso'] += $dado['map_sales_total_osso'];
         }
 
         if ($qtdLojas > 0) {
@@ -428,7 +548,8 @@ class ResultsController extends AppController
         $startDate = date('Y-m-d');
         $endDate = date('Y-m-d');
         $dadosRelatorio = [];
-        $totais = $this->getInitialTotals();
+        $mapSalesDefinitions = $this->loadBakeryMapSalesDefinitions();
+        $totais = $this->getInitialTotals($mapSalesDefinitions);
         $exportQuery = [];
 
         $storeCodes = $this->getStoreCodes();
@@ -438,7 +559,7 @@ class ResultsController extends AppController
             $selectedStoreCodes = $this->normalizeSelectedStoreCodes((array)$this->request->getData('store_codes'), $storeCodes);
             $startDate = $this->request->getData('start_date');
             $endDate = $this->request->getData('end_date');
-            [$dadosRelatorio, $totais] = $this->buildReportData($selectedStoreCodes, $startDate, $endDate);
+            [$dadosRelatorio, $totais] = $this->buildReportData($selectedStoreCodes, $startDate, $endDate, $mapSalesDefinitions);
             $exportQuery = [
                 'store_codes' => $selectedStoreCodes,
                 'start_date' => $startDate,
@@ -453,7 +574,8 @@ class ResultsController extends AppController
             'startDate',
             'endDate',
             'totais',
-            'exportQuery'
+            'exportQuery',
+            'mapSalesDefinitions'
         ));        
 
     }
@@ -464,8 +586,10 @@ class ResultsController extends AppController
         $selectedStoreCodes = $this->normalizeSelectedStoreCodes((array)$this->request->getQuery('store_codes', []), $storeCodes);
         $startDate = (string)$this->request->getQuery('start_date', date('Y-m-d'));
         $endDate = (string)$this->request->getQuery('end_date', date('Y-m-d'));
+        $showFinalizadoPor = $startDate === $endDate;
+        $mapSalesDefinitions = $this->loadBakeryMapSalesDefinitions();
 
-        [$dadosRelatorio, $totais] = $this->buildReportData($selectedStoreCodes, $startDate, $endDate);
+        [$dadosRelatorio, $totais] = $this->buildReportData($selectedStoreCodes, $startDate, $endDate, $mapSalesDefinitions);
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -479,37 +603,55 @@ class ResultsController extends AppController
         $sheet->setCellValue('B3', implode(', ', $selectedStoreCodes));
 
         $dataStartRow = 5;
-        $headers = [
-            'A' => 'Loja',
-            'B' => 'Saidas Kg',
-            'C' => 'Saidas R$',
-            'D' => 'Entradas Kg',
-            'E' => 'Entradas R$',
-            'F' => 'R$ Previstos',
-            'G' => '% Atingida',
-            'H' => 'Diferenca Kg',
-            'I' => 'Diferenca R$',
-            'J' => 'Primeira Custo Medio',
-            'K' => 'Primeira Previstos',
-            'L' => 'Primeira Realizados',
-            'M' => 'Primeira Diferenca',
-            'N' => 'Segunda Custo Medio',
-            'O' => 'Segunda Previstos',
-            'P' => 'Segunda Realizados',
-            'Q' => 'Segunda Diferenca',
-            'R' => 'Osso/Pelanca Custo Medio',
-            'S' => 'Osso/Pelanca Previstos',
-            'T' => 'Osso/Pelanca Realizados',
-            'U' => 'Osso/Pelanca Diferenca',
-            'V' => 'Posicao Rank',
-            'W' => 'Kg Vendas',
-            'X' => 'Finalizado por',
+        $headerLabels = [
+            'Loja',
+            'Saidas Kg',
+            'Saidas R$',
+            'Entradas Kg',
+            'Entradas R$',
+            'R$ Previstos',
+            '% Atingida',
+            'Diferenca Kg',
+            'Diferenca R$',
+            'Primeira Custo Medio',
+            'Primeira Previstos',
+            'Primeira Realizados',
+            'Primeira Diferenca',
+            'Primeira Kg',
+            'Segunda Custo Medio',
+            'Segunda Previstos',
+            'Segunda Realizados',
+            'Segunda Diferenca',
+            'Segunda Kg',
+            'Osso/Pelanca Custo Medio',
+            'Osso/Pelanca Previstos',
+            'Osso/Pelanca Realizados',
+            'Osso/Pelanca Diferenca',
+            'Osso/Pelanca Kg',
+            'Posicao Rank',
         ];
 
-        foreach ($headers as $column => $label) {
+        foreach ($mapSalesDefinitions['first_second'] as $definition) {
+            $headerLabels[] = $definition['good_code'];
+        }
+        $headerLabels[] = 'Total Primeira/Segunda';
+
+        foreach ($mapSalesDefinitions['osso'] as $definition) {
+            $headerLabels[] = $definition['good_code'];
+        }
+        $headerLabels[] = 'Total Osso/Pelanca';
+
+        if ($showFinalizadoPor) {
+            $headerLabels[] = 'Finalizado por';
+        }
+
+        $lastHeaderColumn = Coordinate::stringFromColumnIndex(count($headerLabels));
+
+        foreach ($headerLabels as $index => $label) {
+            $column = Coordinate::stringFromColumnIndex($index + 1);
             $sheet->setCellValue($column . $dataStartRow, $label);
         }
-        $sheet->getStyle('A' . $dataStartRow . ':X' . $dataStartRow)->getFont()->setBold(true);
+        $sheet->getStyle('A' . $dataStartRow . ':' . $lastHeaderColumn . $dataStartRow)->getFont()->setBold(true);
 
         $row = $dataStartRow + 1;
         foreach ($dadosRelatorio as $dado) {
@@ -518,33 +660,49 @@ class ResultsController extends AppController
                 : 0;
 
             $values = [
-                'A' => $dado['loja'],
-                'B' => (float)$dado['total_saidas_kg'],
-                'C' => (float)$dado['total_saidas_rs'],
-                'D' => (float)$dado['total_entradas_kg'],
-                'E' => (float)$dado['total_entradas_rs'],
-                'F' => (float)$dado['rendimento_esperado_total'],
-                'G' => (float)$percentualAtingido,
-                'H' => (float)$dado['diferenca_saidas_entradas_kg'],
-                'I' => (float)$dado['diferenca_saidas_entradas_rs'],
-                'J' => (float)$dado['custo_med_primeira'],
-                'K' => (float)$dado['rendimento_esperado_primeira'],
-                'L' => (float)$dado['rendimento_executado_primeira'],
-                'M' => (float)$dado['rendimento_dif_primeira'],
-                'N' => (float)$dado['custo_med_segunda'],
-                'O' => (float)$dado['rendimento_esperado_segunda'],
-                'P' => (float)$dado['rendimento_executado_segunda'],
-                'Q' => (float)$dado['rendimento_dif_segunda'],
-                'R' => (float)$dado['custo_med_osso_pelanca'],
-                'S' => (float)$dado['rendimento_esperado_osso_pelanca'],
-                'T' => (float)$dado['rendimento_executado_osso_pelanca'],
-                'U' => (float)$dado['rendimento_dif_osso_pelanca'],
-                'V' => (int)$dado['posicao_rank'],
-                'W' => (float)$dado['total_vendas_kg'],
-                'X' => $dado['finalizado_por'],
+                $dado['loja'],
+                (float)$dado['total_saidas_kg'],
+                (float)$dado['total_saidas_rs'],
+                (float)$dado['total_entradas_kg'],
+                (float)$dado['total_entradas_rs'],
+                (float)$dado['rendimento_esperado_total'],
+                (float)$percentualAtingido,
+                (float)$dado['diferenca_saidas_entradas_kg'],
+                (float)$dado['diferenca_saidas_entradas_rs'],
+                (float)$dado['custo_med_primeira'],
+                (float)$dado['rendimento_esperado_primeira'],
+                (float)$dado['rendimento_executado_primeira'],
+                (float)$dado['rendimento_dif_primeira'],
+                (float)$dado['total_kg_primeira'],
+                (float)$dado['custo_med_segunda'],
+                (float)$dado['rendimento_esperado_segunda'],
+                (float)$dado['rendimento_executado_segunda'],
+                (float)$dado['rendimento_dif_segunda'],
+                (float)$dado['total_kg_segunda'],
+                (float)$dado['custo_med_osso_pelanca'],
+                (float)$dado['rendimento_esperado_osso_pelanca'],
+                (float)$dado['rendimento_executado_osso_pelanca'],
+                (float)$dado['rendimento_dif_osso_pelanca'],
+                (float)$dado['total_kg_osso_pelanca'],
+                (int)$dado['posicao_rank'],
             ];
 
-            foreach ($values as $column => $value) {
+            foreach ($mapSalesDefinitions['first_second'] as $definition) {
+                $values[] = (float)$dado[$definition['key']];
+            }
+            $values[] = (float)$dado['map_sales_total_first_second'];
+
+            foreach ($mapSalesDefinitions['osso'] as $definition) {
+                $values[] = (float)$dado[$definition['key']];
+            }
+            $values[] = (float)$dado['map_sales_total_osso'];
+
+            if ($showFinalizadoPor) {
+                $values[] = $dado['finalizado_por'];
+            }
+
+            foreach ($values as $index => $value) {
+                $column = Coordinate::stringFromColumnIndex($index + 1);
                 $sheet->setCellValue($column . $row, $value);
                 if (is_numeric($value)) {
                     $this->applyNegativeStyle($sheet, $column . $row, (float)$value);
@@ -556,36 +714,62 @@ class ResultsController extends AppController
 
         $sheet->setCellValue('A' . $row, 'TOTAIS (MEDIAS*)');
         $totalsRow = [
-            'B' => (float)$totais['total_saidas_kg'],
-            'C' => (float)$totais['total_saidas_rs'],
-            'D' => (float)$totais['total_entradas_kg'],
-            'E' => (float)$totais['total_entradas_rs'],
-            'F' => (float)$totais['rendimento_esperado_total'],
-            'G' => (float)$totais['atingida_media'],
-            'H' => (float)$totais['diferenca_saidas_entradas_kg'],
-            'I' => (float)$totais['diferenca_saidas_entradas_rs'],
-            'J' => (float)$totais['custo_med_primeira_media'],
-            'K' => (float)$totais['rendimento_esperado_primeira'],
-            'L' => (float)$totais['rendimento_executado_primeira'],
-            'M' => (float)$totais['rendimento_dif_primeira'],
-            'N' => (float)$totais['custo_med_segunda_media'],
-            'O' => (float)$totais['rendimento_esperado_segunda'],
-            'P' => (float)$totais['rendimento_executado_segunda'],
-            'Q' => (float)$totais['rendimento_dif_segunda'],
-            'R' => (float)$totais['custo_med_osso_pelanca_media'],
-            'S' => (float)$totais['rendimento_esperado_osso_pelanca'],
-            'T' => (float)$totais['rendimento_executado_osso_pelanca'],
-            'U' => (float)$totais['rendimento_dif_osso_pelanca'],
-            'W' => (float)$totais['total_vendas_kg'],
+            '',
+            (float)$totais['total_saidas_kg'],
+            (float)$totais['total_saidas_rs'],
+            (float)$totais['total_entradas_kg'],
+            (float)$totais['total_entradas_rs'],
+            (float)$totais['rendimento_esperado_total'],
+            (float)$totais['atingida_media'],
+            (float)$totais['diferenca_saidas_entradas_kg'],
+            (float)$totais['diferenca_saidas_entradas_rs'],
+            (float)$totais['custo_med_primeira_media'],
+            (float)$totais['rendimento_esperado_primeira'],
+            (float)$totais['rendimento_executado_primeira'],
+            (float)$totais['rendimento_dif_primeira'],
+            (float)$totais['total_kg_primeira'],
+            (float)$totais['custo_med_segunda_media'],
+            (float)$totais['rendimento_esperado_segunda'],
+            (float)$totais['rendimento_executado_segunda'],
+            (float)$totais['rendimento_dif_segunda'],
+            (float)$totais['total_kg_segunda'],
+            (float)$totais['custo_med_osso_pelanca_media'],
+            (float)$totais['rendimento_esperado_osso_pelanca'],
+            (float)$totais['rendimento_executado_osso_pelanca'],
+            (float)$totais['rendimento_dif_osso_pelanca'],
+            (float)$totais['total_kg_osso_pelanca'],
+            '',
         ];
 
-        foreach ($totalsRow as $column => $value) {
-            $sheet->setCellValue($column . $row, $value);
-            $this->applyNegativeStyle($sheet, $column . $row, $value);
+        foreach ($mapSalesDefinitions['first_second'] as $definition) {
+            $totalsRow[] = (float)$totais[$definition['key']];
         }
-        $sheet->getStyle('A' . $row . ':X' . $row)->getFont()->setBold(true);
+        $totalsRow[] = (float)$totais['map_sales_total_first_second'];
 
-        foreach (range('A', 'X') as $column) {
+        foreach ($mapSalesDefinitions['osso'] as $definition) {
+            $totalsRow[] = (float)$totais[$definition['key']];
+        }
+        $totalsRow[] = (float)$totais['map_sales_total_osso'];
+
+        if ($showFinalizadoPor) {
+            $totalsRow[] = '';
+        }
+
+        foreach ($totalsRow as $index => $value) {
+            if ($index === 0) {
+                continue;
+            }
+
+            $column = Coordinate::stringFromColumnIndex($index + 1);
+            $sheet->setCellValue($column . $row, $value);
+            if (is_numeric($value)) {
+                $this->applyNegativeStyle($sheet, $column . $row, (float)$value);
+            }
+        }
+        $sheet->getStyle('A' . $row . ':' . $lastHeaderColumn . $row)->getFont()->setBold(true);
+
+        for ($columnIndex = 1; $columnIndex <= count($headerLabels); $columnIndex++) {
+            $column = Coordinate::stringFromColumnIndex($columnIndex);
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
 
@@ -604,232 +788,11 @@ class ResultsController extends AppController
     {
         $this->Authorization->skipAuthorization();
         $dateAccounting = date('Y-m-d');
-        $dadosRelatorio = [];
-        for ($i = 1; $i <= 29; $i++) {
-            $storeCodes[sprintf('%03d', $i)] = sprintf('%03d', $i);
-        }
+        $storeCodes = $this->getStoreCodes();
+        $selectedStoreCodes = array_values($storeCodes);
+        $mapSalesDefinitions = $this->loadBakeryMapSalesDefinitions();
 
-        $storeCodes['ACC'] = 'ACC';
-
-        $selectedStoreCodes = $storeCodes;
-
-        $this->loadModel('StoreCutoutCodes');
-        $this->loadModel('Dma');
-        $this->loadModel('Mercadorias');
-        $this->loadModel('ExpectedYield');
-
-        $query = $this->Dma->find()
-            ->contain(['Mercadorias'])
-            ->where([
-                'Dma.store_code IN' => $selectedStoreCodes,
-                'Dma.date_accounting' => $dateAccounting,
-                'Dma.app_product_id' => 1 // Açougue
-            ])
-            ->group([
-                'Dma.id'
-            ])
-            ->toArray();
-
-        foreach( $query as $key => $dma ){
-            
-            $storeCode = $dma['store_code'];
-            if (!isset($dadosRelatorio[$storeCode])) {
-            
-                $dadosRelatorio[$storeCode] = [
-                    'total_saidas_kg' => 0,
-                    'total_saidas_rs' => 0,
-                    'total_entradas_kg' => 0,
-                    'total_entradas_rs' => 0,
-                    'diferenca_saidas_entradas_kg' => 0,
-                    'diferenca_saidas_entradas_rs' => 0,
-                    'rendimento_esperado_primeira' => 0,
-                    'rendimento_esperado_segunda' => 0,
-                    'rendimento_esperado_osso_pelanca' => 0,
-                    //'rendimento_esperado_osso_descarte' => 0,
-                    'rendimento_executado_primeira' => 0,
-                    'rendimento_executado_segunda' => 0,
-                    'rendimento_executado_osso_pelanca' => 0,
-                    //'rendimento_executado_osso_descarte' => 0,
-                    'rendimento_dif_primeira' => 0,
-                    'rendimento_dif_segunda' => 0,
-                    'rendimento_dif_osso_pelanca' => 0,
-                    //'rendimento_dif_osso_descarte' => 0,
-                    'custo_med_primeira' => 0,
-                    'custo_med_segunda' => 0,
-                    'custo_med_osso_pelanca' => 0,
-                    //'custo_med_osso_descarte' => 0,
-                    'encerramento' => '2000-01-01',
-                    'base_calc_rank' => 0,
-                    'posicao_rank' => 1,
-                    'loja' => $storeCode,
-                    'finalizado_por' => ''
-                ];
-            }
-
-            $cutoutCodes = $this->StoreCutoutCodes->find()->where([
-                'StoreCutoutCodes.store_code' => $storeCode
-            ]);
-
-            $tipo_dma = $dma['type'];
-            $dma_qtd = $dma['quantity'];
-            $dma_cost = $dma['cost'];
-
-            if ( $dma['ended'] === 'N' ) {
-                $dadosRelatorio[$storeCode]['finalizado_por'] = 'em andamento';
-            } else if ( $dma['ended'] === 'Y' && $dma['ended_by_cron'] === 'Y' ) {
-                $dadosRelatorio[$storeCode]['finalizado_por'] = 'Sistema';
-            } else if ( $dma['ended'] === 'Y' && $dma['ended_by_cron'] === 'N' ) {
-                $dadosRelatorio[$storeCode]['finalizado_por'] = $dma['user'];
-            }
-
-            // Se o registro de DMA for do tipo saída
-            if ( $tipo_dma == 'Saida' ) {
-    
-                $dadosRelatorio[$storeCode]['total_saidas_kg'] += $dma_qtd;
-                $valor_mercadoria = 0;
-
-                if ( $dma['mercadoria']['opcusto'] == "M" ) {
-                    $valor_mercadoria = $dma['mercadoria']['customed'];
-                }
-                else {
-                    $valor_mercadoria = $dma['mercadoria']['custotab'];
-                }
-                
-                $dadosRelatorio[$storeCode]['total_saidas_rs'] += $dma_qtd * $valor_mercadoria;
-
-                $espectativa = $this->ExpectedYield->find()
-                ->where([
-                    'ExpectedYield.good_code' => floatVal($dma['good_code'])
-                ])
-                ->first();
-
-                if ( $espectativa ) {                        
-                    $espectativa = $espectativa->toArray();
-                } else {                        
-
-                    $espectativa['prime'] = 0;
-                    $espectativa['second'] = 0;
-                    $espectativa['bones_skin'] = 0;
-                    $espectativa['bones_discard'] = 0;
-                }
-
-                $espectativa_primeira_porc = $espectativa['prime'] ? $espectativa['prime']/100 : 0;
-                $espectativa_segunda_porc = $espectativa['second'] ? $espectativa['second']/100 : 0;
-                $espectativa_osso_pelanca_porc = $espectativa['bones_skin'] ? $espectativa['bones_skin']/100 : 0;
-                //$espectativa_osso_descarte_porc = $espectativa['bones_discard'] && $espectativa['bones_discard'] > 0 ? $espectativa['bones_discard']/100 : 0;
-
-                $espectativa_primeira = $dma_qtd * $espectativa_primeira_porc;
-                $espectativa_segunda = $dma_qtd * $espectativa_segunda_porc;
-                $espectativa_osso_pelanca = $dma_qtd * $espectativa_osso_pelanca_porc;
-                //$espectativa_osso_descarte = $dma_qtd * $espectativa_osso_descarte_porc;
-
-                $dadosRelatorio[$storeCode]['rendimento_esperado_primeira'] += $espectativa_primeira * $valor_mercadoria;
-                $dadosRelatorio[$storeCode]['rendimento_esperado_segunda'] += $espectativa_segunda * $valor_mercadoria;
-                $dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca'] += $espectativa_osso_pelanca * $valor_mercadoria;
-                //$dadosRelatorio[$storeCode]['rendimento_esperado_osso_descarte'] += $espectativa_osso_descarte * $valor_mercadoria;
-
-            }
-
-            // Se o registro de DMA for do tipo entrada
-            else if ( $tipo_dma == 'Entrada' ) {
-
-                // Soma o total em kg das entradas
-                $dadosRelatorio[$storeCode]['total_entradas_kg'] += $dma_qtd;
-
-                $cutout_type = $dma['cutout_type'];
-
-                // Busca o código correspondente ao produto de primeira da loja em questão
-                $cutCode = array_values(array_filter($cutoutCodes->toArray(), function($cc) use($cutout_type){
-                    return $cc['cutout_type'] == strtoupper($cutout_type);
-                }))[0]['cutout_code'];                    
-
-                $cutCode = str_pad($cutCode, 7, "0", STR_PAD_LEFT);
-
-                // Pega o custo do cálculo, senão pega o custo do produto na tabela de marcadorias
-                if ( 1 == 2) {
-                    $valor_mercadoria = $dma_cost;
-                } else {
-
-                    // Busca os dados do produto que corresponde ao código do produto de primeira | segunda | osso e pelanca da loja correspondente
-                    $dados_mercadoria = $this->Mercadorias->find()
-                    ->select([
-                        'tx_descricao',
-                        'customed',
-                        'custotab',
-                        'opcusto'
-                    ])
-                    ->where([
-                        'Mercadorias.cd_codigoint' => $cutCode
-                    ])->first()
-                    ->toArray();
-
-                    $valor_mercadoria = 0;
-
-                    if ( $dados_mercadoria['opcusto'] == "M" ) {
-                        $valor_mercadoria = $dados_mercadoria['customed'];
-                    } else {
-                        $valor_mercadoria = $dados_mercadoria['custotab'];
-                    }
-
-                }
-
-
-                $dadosRelatorio[$storeCode]['total_entradas_rs'] += $dma_qtd * $valor_mercadoria;
-
-                if ( $cutout_type == "Primeira" ) {
-                    $dadosRelatorio[$storeCode]['rendimento_executado_primeira'] += $dma_qtd * $valor_mercadoria;
-                    $dadosRelatorio[$storeCode]['custo_med_primeira'] =  $valor_mercadoria;
-                }
-
-                else if ( $cutout_type == "Segunda" ) {
-                    $dadosRelatorio[$storeCode]['rendimento_executado_segunda'] += $dma_qtd * $valor_mercadoria;
-                    $dadosRelatorio[$storeCode]['custo_med_segunda'] =  $valor_mercadoria;
-                }
-
-                else if ( $cutout_type == "Osso e Pelanca" ) {
-                    $dadosRelatorio[$storeCode]['rendimento_executado_osso_pelanca'] += $dma_qtd * $valor_mercadoria;
-                    $dadosRelatorio[$storeCode]['custo_med_osso_pelanca'] =  $valor_mercadoria;
-                }
-
-                /*else if ( $cutout_type == "Osso a Descarte" ) {
-                    $dadosRelatorio[$storeCode]['rendimento_executado_osso_descarte'] += $dma_qtd * $valor_mercadoria;
-                    $dadosRelatorio[$storeCode]['custo_med_osso_descarte'] =  $valor_mercadoria;
-                }*/
-        
-            }
-
-            // Calcula a diferença entre entradas e saídas em Kg e em R$
-            $dadosRelatorio[$storeCode]['diferenca_saidas_entradas_kg'] = $dadosRelatorio[$storeCode]['total_saidas_kg']-$dadosRelatorio[$storeCode]['total_entradas_kg'];
-            $dadosRelatorio[$storeCode]['diferenca_saidas_entradas_rs'] = $dadosRelatorio[$storeCode]['total_saidas_rs']-$dadosRelatorio[$storeCode]['total_entradas_rs'];
-
-            // Calcular a diferença de rendimento entre orçado e executado
-            $dadosRelatorio[$storeCode]['rendimento_dif_primeira'] = $dadosRelatorio[$storeCode]['rendimento_executado_primeira']-$dadosRelatorio[$storeCode]['rendimento_esperado_primeira'];
-            $dadosRelatorio[$storeCode]['rendimento_dif_segunda'] = $dadosRelatorio[$storeCode]['rendimento_executado_segunda']-$dadosRelatorio[$storeCode]['rendimento_esperado_segunda'];
-            $dadosRelatorio[$storeCode]['rendimento_dif_osso_pelanca'] = $dadosRelatorio[$storeCode]['rendimento_executado_osso_pelanca']-$dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca'];
-            //$dadosRelatorio[$storeCode]['rendimento_dif_osso_descarte'] = $dadosRelatorio[$storeCode]['rendimento_executado_osso_descarte']-$dadosRelatorio[$storeCode]['rendimento_esperado_osso_descarte'];
-
-            $dadosRelatorio[$storeCode]['base_calc_rank'] += 
-                (!empty($dadosRelatorio[$storeCode]['rendimento_esperado_primeira']) ? $dadosRelatorio[$storeCode]['rendimento_executado_primeira'] / $dadosRelatorio[$storeCode]['rendimento_esperado_primeira'] : $dadosRelatorio[$storeCode]['rendimento_executado_primeira'])
-                + (!empty($dadosRelatorio[$storeCode]['rendimento_esperado_segunda']) ? $dadosRelatorio[$storeCode]['rendimento_executado_segunda'] / $dadosRelatorio[$storeCode]['rendimento_esperado_segunda'] : $dadosRelatorio[$storeCode]['rendimento_esperado_segunda'])
-                + (!empty($dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca']) ? $dadosRelatorio[$storeCode]['rendimento_executado_osso_pelanca'] / $dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca'] : $dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca'])
-            ;
-
-            if ( $dadosRelatorio[$storeCode]['encerramento'] < $dma['date_accounting']->format('Y-m-d') ){
-                $dadosRelatorio[$storeCode]['encerramento'] = $dma['date_accounting']->format('Y-m-d');
-            }
-
-        }// End foreach
-
-        // Ordenar o array por base_calc_rank de forma decrescente
-        usort($dadosRelatorio, function($a, $b) {
-            return $b['base_calc_rank'] <=> $a['base_calc_rank'];
-        });
-
-        // Atribuir posicao_rank baseado na posição do array
-        foreach ($dadosRelatorio as $index => &$value) {
-            $value['posicao_rank'] = $index + 1;
-        }
-        unset($value);
+        [$dadosRelatorio] = $this->buildReportData($selectedStoreCodes, $dateAccounting, $dateAccounting, $mapSalesDefinitions);
 
         $this->set(compact(
             'dadosRelatorio',
