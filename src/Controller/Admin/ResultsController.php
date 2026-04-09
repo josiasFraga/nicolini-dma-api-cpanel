@@ -288,10 +288,32 @@ class ResultsController extends AppController
         }
     }
 
+    private function initializeExpectedAverageAccumulators(string $storeCode, array &$weightedExpectedTotals, array &$expectedQuantities): void
+    {
+        if (isset($weightedExpectedTotals[$storeCode], $expectedQuantities[$storeCode])) {
+            return;
+        }
+
+        $weightedExpectedTotals[$storeCode] = [
+            'Primeira' => 0.0,
+            'Segunda' => 0.0,
+            'Osso e Pelanca' => 0.0,
+        ];
+
+        $expectedQuantities[$storeCode] = [
+            'Primeira' => 0.0,
+            'Segunda' => 0.0,
+            'Osso e Pelanca' => 0.0,
+        ];
+    }
+
     private function buildReportData(array $selectedStoreCodes, string $startDate, string $endDate, array $mapSalesDefinitions): array
     {
         $dadosRelatorio = [];
         $totais = $this->getInitialTotals($mapSalesDefinitions);
+        $useExpectedAverage = $startDate !== $endDate;
+        $weightedExpectedTotals = [];
+        $expectedQuantities = [];
 
         $this->loadModel('Dma');
         $this->loadModel('ExpectedYield');
@@ -320,6 +342,7 @@ class ResultsController extends AppController
                 $dadosRelatorio[$storeCode]['custo_med_segunda'] = (float)($cutoutAverageCosts[$storeCode]['Segunda'] ?? 0);
                 $dadosRelatorio[$storeCode]['custo_med_osso_pelanca'] = (float)($cutoutAverageCosts[$storeCode]['Osso e Pelanca'] ?? 0);
                 $this->populateMapSalesForStore($dadosRelatorio[$storeCode], $storeCode, $salesTotals, $mapSalesDefinitions);
+                $this->initializeExpectedAverageAccumulators($storeCode, $weightedExpectedTotals, $expectedQuantities);
             }
 
             $tipoDma = $dma['type'];
@@ -358,17 +381,24 @@ class ResultsController extends AppController
                 $espectativaSegunda = $dmaQtd * ($espectativa['second'] ? $espectativa['second'] / 100 : 0);
                 $espectativaOssoPelanca = $dmaQtd * ($espectativa['bones_skin'] ? $espectativa['bones_skin'] / 100 : 0);
 
-                $dadosRelatorio[$storeCode]['rendimento_esperado_primeira'] += $espectativaPrimeira * $dadosRelatorio[$storeCode]['custo_med_primeira'];
-                $dadosRelatorio[$storeCode]['rendimento_esperado_segunda'] += $espectativaSegunda * $dadosRelatorio[$storeCode]['custo_med_segunda'];
-                $dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca'] += $espectativaOssoPelanca * $dadosRelatorio[$storeCode]['custo_med_osso_pelanca'];
+                $valorPrevistoPrimeira = $espectativaPrimeira * $dadosRelatorio[$storeCode]['custo_med_primeira'];
+                $valorPrevistoSegunda = $espectativaSegunda * $dadosRelatorio[$storeCode]['custo_med_segunda'];
+                $valorPrevistoOssoPelanca = $espectativaOssoPelanca * $dadosRelatorio[$storeCode]['custo_med_osso_pelanca'];
 
-                /*debug($dma['good_code']);
-                debug($espectativa);
-                debug($dmaQtd);
-                debug($espectativaSegunda);
-                debug($dadosRelatorio[$storeCode]['rendimento_esperado_primeira']);
-                debug($dadosRelatorio[$storeCode]['custo_med_primeira']);
-                die();*/
+                if ($useExpectedAverage) {
+                    $weightedExpectedTotals[$storeCode]['Primeira'] += $espectativaPrimeira * $valorPrevistoPrimeira;
+                    $weightedExpectedTotals[$storeCode]['Segunda'] += $espectativaSegunda * $valorPrevistoSegunda;
+                    $weightedExpectedTotals[$storeCode]['Osso e Pelanca'] += $espectativaOssoPelanca * $valorPrevistoOssoPelanca;
+
+                    $expectedQuantities[$storeCode]['Primeira'] += $espectativaPrimeira;
+                    $expectedQuantities[$storeCode]['Segunda'] += $espectativaSegunda;
+                    $expectedQuantities[$storeCode]['Osso e Pelanca'] += $espectativaOssoPelanca;
+                } else {
+                    $dadosRelatorio[$storeCode]['rendimento_esperado_primeira'] += $valorPrevistoPrimeira;
+                    $dadosRelatorio[$storeCode]['rendimento_esperado_segunda'] += $valorPrevistoSegunda;
+                    $dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca'] += $valorPrevistoOssoPelanca;
+                }
+    
             } elseif ($tipoDma == 'Entrada') {
                 $dadosRelatorio[$storeCode]['total_entradas_kg'] += $dmaQtd;
 
@@ -388,26 +418,41 @@ class ResultsController extends AppController
                 }
             }
 
-            $dadosRelatorio[$storeCode]['rendimento_esperado_total'] =
-                $dadosRelatorio[$storeCode]['rendimento_esperado_primeira'] +
-                $dadosRelatorio[$storeCode]['rendimento_esperado_segunda'] +
-                $dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca'];
-
-            $dadosRelatorio[$storeCode]['diferenca_saidas_entradas_kg'] = $dadosRelatorio[$storeCode]['total_saidas_kg'] - $dadosRelatorio[$storeCode]['total_entradas_kg'];
-            $dadosRelatorio[$storeCode]['diferenca_saidas_entradas_rs'] = $dadosRelatorio[$storeCode]['total_saidas_rs'] - $dadosRelatorio[$storeCode]['total_entradas_rs'];
-
-            $dadosRelatorio[$storeCode]['rendimento_dif_primeira'] = $dadosRelatorio[$storeCode]['rendimento_executado_primeira'] - $dadosRelatorio[$storeCode]['rendimento_esperado_primeira'];
-            $dadosRelatorio[$storeCode]['rendimento_dif_segunda'] = $dadosRelatorio[$storeCode]['rendimento_executado_segunda'] - $dadosRelatorio[$storeCode]['rendimento_esperado_segunda'];
-            $dadosRelatorio[$storeCode]['rendimento_dif_osso_pelanca'] = $dadosRelatorio[$storeCode]['rendimento_executado_osso_pelanca'] - $dadosRelatorio[$storeCode]['rendimento_esperado_osso_pelanca'];
-
-            $dadosRelatorio[$storeCode]['base_calc_rank'] = !empty($dadosRelatorio[$storeCode]['rendimento_esperado_total'])
-                ? $dadosRelatorio[$storeCode]['total_entradas_rs'] / $dadosRelatorio[$storeCode]['rendimento_esperado_total']
-                : 0;
-
             if ($dadosRelatorio[$storeCode]['encerramento'] < $dma['date_accounting']->format('Y-m-d')) {
                 $dadosRelatorio[$storeCode]['encerramento'] = $dma['date_accounting']->format('Y-m-d');
             }
         }
+
+        foreach ($dadosRelatorio as $storeCode => &$row) {
+            if ($useExpectedAverage) {
+                $row['rendimento_esperado_primeira'] = $expectedQuantities[$storeCode]['Primeira'] > 0
+                    ? $weightedExpectedTotals[$storeCode]['Primeira'] / $expectedQuantities[$storeCode]['Primeira']
+                    : 0;
+                $row['rendimento_esperado_segunda'] = $expectedQuantities[$storeCode]['Segunda'] > 0
+                    ? $weightedExpectedTotals[$storeCode]['Segunda'] / $expectedQuantities[$storeCode]['Segunda']
+                    : 0;
+                $row['rendimento_esperado_osso_pelanca'] = $expectedQuantities[$storeCode]['Osso e Pelanca'] > 0
+                    ? $weightedExpectedTotals[$storeCode]['Osso e Pelanca'] / $expectedQuantities[$storeCode]['Osso e Pelanca']
+                    : 0;
+            }
+
+            $dadosRelatorio[$storeCode]['rendimento_esperado_total'] =
+                $row['rendimento_esperado_primeira'] +
+                $row['rendimento_esperado_segunda'] +
+                $row['rendimento_esperado_osso_pelanca'];
+
+            $row['diferenca_saidas_entradas_kg'] = $row['total_saidas_kg'] - $row['total_entradas_kg'];
+            $row['diferenca_saidas_entradas_rs'] = $row['total_saidas_rs'] - $row['total_entradas_rs'];
+
+            $row['rendimento_dif_primeira'] = $row['rendimento_executado_primeira'] - $row['rendimento_esperado_primeira'];
+            $row['rendimento_dif_segunda'] = $row['rendimento_executado_segunda'] - $row['rendimento_esperado_segunda'];
+            $row['rendimento_dif_osso_pelanca'] = $row['rendimento_executado_osso_pelanca'] - $row['rendimento_esperado_osso_pelanca'];
+
+            $row['base_calc_rank'] = !empty($row['rendimento_esperado_total'])
+                ? $row['total_entradas_rs'] / $row['rendimento_esperado_total']
+                : 0;
+        }
+        unset($row);
 
         usort($dadosRelatorio, function ($a, $b) {
             return $b['base_calc_rank'] <=> $a['base_calc_rank'];
