@@ -58,6 +58,22 @@ As colunas dinamicas de MAP de vendas sao calculadas a partir de `ProductsSells`
 - produto;
 - periodo filtrado.
 
+### 2.4. Snapshots de custo por corte
+
+Quando um corte nao possui entrada real no periodo filtrado, o relatorio pode usar a tabela `dma_cutout_cost_snapshots` como fallback de custo.
+
+Esses snapshots sao gravados no fechamento do DMA do acougue e congelam, por loja e data, o custo usado para:
+
+- Primeira;
+- Segunda;
+- Osso e Pelanca.
+
+As origens principais do snapshot sao:
+
+- `actual_entry_avg`: quando houve entrada real do corte no dia e o snapshot guarda a media ponderada real;
+- `current_cutout_code_cost`: quando nao houve entrada real do corte no dia e o sistema usou o custo atual do codigo de recorte configurado da loja;
+- `retroactive_cutout_code_cost`: quando o snapshot foi gerado por backfill historico.
+
 ## 3. Como o custo e definido
 
 Cada registro do DMA usa o seguinte custo efetivo:
@@ -78,7 +94,7 @@ se Dma.cost estiver vazio:
 
 ## 4. Como o custo medio por corte e calculado
 
-Antes de montar o relatorio por loja, o sistema calcula um custo medio ponderado por tipo de corte, usando apenas registros de `Entrada` do periodo.
+Antes de montar o relatorio por loja, o sistema tenta calcular um custo medio ponderado por tipo de corte usando registros reais de `Entrada` do periodo.
 
 Tipos considerados:
 
@@ -91,6 +107,26 @@ Formula por loja e por corte:
 ```text
 custo_medio_corte = soma(custo_efetivo * quantidade) / soma(quantidade)
 ```
+
+### 4.1. Regra de fallback por snapshot
+
+Se `soma(quantidade)` do corte for maior que zero no periodo, o relatorio usa a media ponderada real das entradas.
+
+Se `soma(quantidade)` do corte for zero no periodo, o relatorio nao deixa o custo medio zerar automaticamente. Nesse caso ele usa os snapshots de custo do mesmo periodo para a loja e o corte.
+
+Formula conceitual do fallback:
+
+```text
+se soma(quantidade_entrada_do_corte_no_periodo) > 0:
+  custo_medio_corte = soma(custo_efetivo * quantidade) / soma(quantidade)
+se soma(quantidade_entrada_do_corte_no_periodo) = 0:
+  custo_medio_corte = media_simples(cost dos snapshots do corte no periodo)
+```
+
+Objetivo da regra:
+
+- evitar que o previsto do corte zere artificialmente;
+- evitar inflacao indevida da `% Atingida` quando ha expectativa de corte, mas nao ha entrada real registrada no periodo.
 
 Esse valor alimenta as colunas:
 
@@ -179,7 +215,7 @@ diferenca_saidas_entradas_rs = total_saidas_rs - total_entradas_rs
 
 ### R$ Custo Medio
 
-E o custo medio ponderado das entradas do tipo `Primeira` no periodo.
+E o custo medio do corte `Primeira` no periodo. Ele usa entrada real ponderada quando existir; se nao existir entrada real, usa snapshot de custo do periodo.
 
 ### R$ Previstos
 
@@ -187,7 +223,7 @@ Para cada registro de `Saida`, o sistema:
 
 1. busca o percentual `prime` da tabela `ExpectedYield`;
 2. calcula a quantidade esperada de Primeira;
-3. multiplica essa quantidade pelo custo medio de Primeira da loja no periodo.
+3. multiplica essa quantidade pelo custo medio de Primeira da loja no periodo, com fallback para snapshot quando necessario.
 
 Formula por registro de saida:
 
@@ -229,6 +265,12 @@ Segue exatamente a mesma logica da Primeira, trocando:
 - percentual `prime` por `second`;
 - corte `Primeira` por `Segunda`.
 
+Observacao importante:
+
+- a Segunda e um dos casos mais sensiveis a distorcao;
+- antes da implementacao do snapshot, quando nao havia entrada real de Segunda no periodo, o custo medio podia zerar e o previsto de Segunda desaparecia da conta;
+- agora, nesse cenario, o relatorio usa o snapshot de custo da Segunda para manter o previsto aderente a expectativa operacional.
+
 Formulas:
 
 ```text
@@ -243,6 +285,8 @@ total_kg_segunda = soma(quantity das entradas Segunda)
 ## 5.6. OSSO E PELANCA
 
 Segue a mesma logica, usando `bones_skin` como percentual esperado e `Osso e Pelanca` como tipo de corte.
+
+Assim como nos demais cortes, se nao houver entrada real de `Osso e Pelanca` no periodo, o custo medio passa a vir do snapshot do periodo.
 
 Formulas:
 
@@ -294,7 +338,7 @@ Na pratica:
 
 1. `Saidas` consideram apenas as saidas do dia.
 2. `Entradas` consideram apenas as entradas do dia.
-3. `Custo medio` e calculado apenas com as entradas do dia.
+3. `Custo medio` e calculado apenas com as entradas do dia; se um corte nao tiver entrada real no dia, o sistema usa o snapshot daquele mesmo dia.
 4. `R$ Previstos` e a soma dos previstos das saidas do dia.
 5. `R$ Realizados` e a soma do realizado das entradas do dia.
 6. A coluna `Finalizado por` aparece somente nesse caso.
@@ -304,7 +348,7 @@ Resumo conceitual:
 ```text
 periodo = 1 dia
 todos os somatorios usam somente esse dia
-custo medio tambem usa somente esse dia
+custo medio usa esse dia e pode recorrer ao snapshot do proprio dia
 ```
 
 ## 7. Caso 2: filtro de 2 ou mais dias
@@ -315,7 +359,7 @@ Na pratica:
 
 1. `Saidas` somam todas as saidas do intervalo.
 2. `Entradas` somam todas as entradas do intervalo.
-3. `Custo medio` e recalculado considerando todas as entradas do intervalo, por loja e por corte.
+3. `Custo medio` e recalculado considerando todas as entradas do intervalo, por loja e por corte; quando faltar entrada real de um corte no intervalo, o sistema usa a media simples dos snapshots desse corte no periodo.
 4. `R$ Previstos` e a soma dos previstos gerados por todas as saidas do intervalo.
 5. `R$ Realizados` e a soma dos valores de entrada do intervalo.
 6. A coluna `Finalizado por` nao aparece.
@@ -325,7 +369,7 @@ Resumo conceitual:
 ```text
 periodo = varios dias
 todos os somatorios usam o intervalo completo
-custo medio vira media ponderada do intervalo completo
+custo medio vira media ponderada do intervalo completo e pode usar snapshots quando faltar entrada real do corte
 previsto tambem e somado no intervalo completo
 ```
 
@@ -380,6 +424,7 @@ total_entradas_kg = soma(entradas.quantity)
 total_entradas_rs = soma(entradas.quantity * custo_efetivo_entrada)
 
 custo_medio_corte = soma(custo_efetivo * quantidade) / soma(quantidade)
+se nao houver quantidade real do corte no periodo, custo_medio_corte = media_simples(snapshots_do_corte_no_periodo)
 
 qtd_esperada_corte = quantidade_saida * (percentual_expected_yield / 100)
 valor_previsto_corte = qtd_esperada_corte * custo_medio_corte

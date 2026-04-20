@@ -986,7 +986,7 @@ class ResultsController extends AppController
                 'items' => [
                     'Saidas consideram somente o dia selecionado.',
                     'Entradas consideram somente o dia selecionado.',
-                    'Custos medios consideram somente o dia selecionado.',
+                    'Custos medios consideram somente o dia selecionado; se um corte nao tiver entrada real no dia, o sistema usa o snapshot de fechamento daquele proprio dia.',
                     'Previstos e realizados representam somente aquele dia.',
                     'A coluna Finalizado por aparece para indicar quem encerrou o DMA da loja.',
                 ],
@@ -1000,7 +1000,7 @@ class ResultsController extends AppController
                 'items' => [
                     'Saidas somam tudo o que saiu no intervalo.',
                     'Entradas somam tudo o que entrou no intervalo.',
-                    'Custos medios passam a refletir o comportamento do periodo inteiro.',
+                    'Custos medios passam a refletir o comportamento do periodo inteiro; quando faltar entrada real de um corte, o sistema usa os snapshots de fechamento do intervalo como fallback.',
                     'Previstos passam a representar o total esperado para o intervalo.',
                     'Realizados passam a representar o total real do intervalo.',
                     'A tela nao mostra Finalizado por nesse modo, porque o periodo pode conter varios fechamentos.',
