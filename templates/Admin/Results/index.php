@@ -276,7 +276,7 @@ $ossoColumns = $mapSalesDefinitions['osso'] ?? [];
                 </div>
                 <div class="card-body d-none" id="debugPanelBody">
                   <div class="alert alert-warning">
-                    Este painel mostra apenas os registros DMA usados para montar o resultado da loja selecionada, incluindo expectativas, custos medios do periodo, acumuladores parciais e resumo final do calculo.
+                    Este painel mostra apenas os registros DMA usados para montar o resultado da loja selecionada, incluindo expectativas, custos medios do periodo, snapshots de fallback, acumuladores parciais e resumo final do calculo.
                   </div>
 
                   <div class="row mb-4">
@@ -341,16 +341,20 @@ $ossoColumns = $mapSalesDefinitions['osso'] ?? [];
                               <th>Soma de custo x quantidade</th>
                               <th>Soma de quantidade</th>
                               <th>Custo medio aplicado</th>
+                              <th>Origem do custo</th>
+                              <th>Snapshots usados</th>
                             </tr>
                           </thead>
                           <tbody>
                             <?php foreach ($debugCutoutTypes as $cutoutType): ?>
-                            <?php $breakdown = $debugCostBreakdown[$cutoutType] ?? ['total_cost_quantity' => 0, 'total_quantity' => 0, 'average_cost' => 0]; ?>
+                            <?php $breakdown = $debugCostBreakdown[$cutoutType] ?? ['total_cost_quantity' => 0, 'total_quantity' => 0, 'average_cost' => 0, 'source' => 'indisponivel', 'snapshot_count' => 0]; ?>
                             <tr>
                               <td><strong><?= h($cutoutType) ?></strong></td>
                               <td><?= number_format((float)$breakdown['total_cost_quantity'], 2, ',', '.') ?></td>
                               <td><?= number_format((float)$breakdown['total_quantity'], 3, ',', '.') ?></td>
                               <td><?= number_format((float)$breakdown['average_cost'], 2, ',', '.') ?></td>
+                              <td><?= h((string)$breakdown['source']) ?></td>
+                              <td><?= (int)($breakdown['snapshot_count'] ?? 0) ?></td>
                             </tr>
                             <?php endforeach; ?>
                           </tbody>

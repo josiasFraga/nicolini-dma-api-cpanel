@@ -250,6 +250,200 @@ class DmaController extends AppController
 			: floatval($mercadoria->custotab);
 	}
 
+	private function resolveDmaEffectiveCost($dma): ?float
+	{
+		$storedCost = $dma['cost'] ?? null;
+
+		if ($storedCost !== null && $storedCost !== '') {
+			return floatval($storedCost);
+		}
+
+		if (empty($dma['good_code'])) {
+			return null;
+		}
+
+		return $this->resolveMercadoriaCost((string)$dma['good_code']);
+	}
+
+	private function normalizeConfiguredCutoutType(?string $cutoutType): ?string
+	{
+		$normalized = strtoupper(trim((string)$cutoutType));
+
+		$map = [
+			'PRIMEIRA' => 'Primeira',
+			'SEGUNDA' => 'Segunda',
+			'OSSO E PELANCA' => 'Osso e Pelanca',
+			'OSSO A DESCARTE' => 'Osso a Descarte',
+		];
+
+		return $map[$normalized] ?? null;
+	}
+
+	private function getButcherSnapshotCutoutTypes(): array
+	{
+		return ['Primeira', 'Segunda', 'Osso e Pelanca'];
+	}
+
+	private function loadStoreCutoutCodes(string $storeCode): array
+	{
+		$this->loadModel('StoreCutoutCodes');
+
+		$cutoutCodes = $this->StoreCutoutCodes->find()
+			->select(['cutout_type', 'cutout_code'])
+			->where([
+				'StoreCutoutCodes.store_code' => $storeCode,
+			])
+			->enableHydration(false)
+			->toArray();
+
+		$mapped = [];
+		foreach ($cutoutCodes as $cutoutCode) {
+			$cutoutType = $this->normalizeConfiguredCutoutType((string)$cutoutCode['cutout_type']);
+			if ($cutoutType === null) {
+				continue;
+			}
+
+			$mapped[$cutoutType] = str_pad((string)$cutoutCode['cutout_code'], 7, '0', STR_PAD_LEFT);
+		}
+
+		return $mapped;
+	}
+
+	private function buildButcherCutoutSnapshotData(array $entradas, array $saidas, string $ended_by_cron, string $ended_by): array
+	{
+		$cutoutTypes = $this->getButcherSnapshotCutoutTypes();
+		$entriesByStoreDateCutout = [];
+		$datesByStore = [];
+		$cutoutCodesByStore = [];
+
+		foreach (array_merge($entradas, $saidas) as $lancamento) {
+			$storeCode = (string)$lancamento['store_code'];
+			$dateAccounting = $lancamento['date_accounting']->format('Y-m-d');
+			$datesByStore[$storeCode][$dateAccounting] = true;
+		}
+
+		foreach ($entradas as $entrada) {
+			$cutoutType = (string)($entrada['cutout_type'] ?? '');
+			if (!in_array($cutoutType, $cutoutTypes, true)) {
+				continue;
+			}
+
+			$storeCode = (string)$entrada['store_code'];
+			$dateAccounting = $entrada['date_accounting']->format('Y-m-d');
+			$quantity = (float)$entrada['quantity'];
+			$cost = $this->resolveDmaEffectiveCost($entrada);
+
+			if (!isset($entriesByStoreDateCutout[$storeCode][$dateAccounting][$cutoutType])) {
+				$entriesByStoreDateCutout[$storeCode][$dateAccounting][$cutoutType] = [
+					'total_quantity' => 0.0,
+					'total_cost_quantity' => 0.0,
+					'good_code' => '',
+				];
+			}
+
+			if ($quantity > 0 && $cost !== null) {
+				$entriesByStoreDateCutout[$storeCode][$dateAccounting][$cutoutType]['total_quantity'] += $quantity;
+				$entriesByStoreDateCutout[$storeCode][$dateAccounting][$cutoutType]['total_cost_quantity'] += $quantity * $cost;
+			}
+
+			if ($entriesByStoreDateCutout[$storeCode][$dateAccounting][$cutoutType]['good_code'] === '') {
+				$entriesByStoreDateCutout[$storeCode][$dateAccounting][$cutoutType]['good_code'] = str_pad((string)$entrada['good_code'], 7, '0', STR_PAD_LEFT);
+			}
+		}
+
+		$snapshotData = [];
+		foreach ($datesByStore as $storeCode => $dates) {
+			$cutoutCodesByStore[$storeCode] = $cutoutCodesByStore[$storeCode] ?? $this->loadStoreCutoutCodes($storeCode);
+
+			foreach (array_keys($dates) as $dateAccounting) {
+				foreach ($cutoutTypes as $cutoutType) {
+					$entryTotals = $entriesByStoreDateCutout[$storeCode][$dateAccounting][$cutoutType] ?? null;
+					$configuredGoodCode = $cutoutCodesByStore[$storeCode][$cutoutType] ?? '';
+
+					if ($entryTotals !== null && $entryTotals['total_quantity'] > 0) {
+						$averageCost = $entryTotals['total_cost_quantity'] / $entryTotals['total_quantity'];
+						$snapshotData[] = [
+							'app_product_id' => 1,
+							'store_code' => $storeCode,
+							'date_accounting' => $dateAccounting,
+							'cutout_type' => $cutoutType,
+							'good_code' => $entryTotals['good_code'] !== '' ? $entryTotals['good_code'] : $configuredGoodCode,
+							'cost' => round($averageCost, 2),
+							'source' => 'actual_entry_avg',
+							'basis_quantity' => round((float)$entryTotals['total_quantity'], 3),
+							'basis_total_cost' => round((float)$entryTotals['total_cost_quantity'], 2),
+							'ended_by' => $ended_by,
+							'ended_by_cron' => $ended_by_cron,
+							'notes' => null,
+						];
+						continue;
+					}
+
+					if ($configuredGoodCode === '') {
+						continue;
+					}
+
+					$fallbackCost = $this->resolveMercadoriaCost($configuredGoodCode);
+					if ($fallbackCost === null) {
+						continue;
+					}
+
+					$snapshotData[] = [
+						'app_product_id' => 1,
+						'store_code' => $storeCode,
+						'date_accounting' => $dateAccounting,
+						'cutout_type' => $cutoutType,
+						'good_code' => $configuredGoodCode,
+						'cost' => round($fallbackCost, 2),
+						'source' => 'current_cutout_code_cost',
+						'basis_quantity' => 0,
+						'basis_total_cost' => 0,
+						'ended_by' => $ended_by,
+						'ended_by_cron' => $ended_by_cron,
+						'notes' => 'Snapshot gerado sem entrada real do corte no fechamento.',
+					];
+				}
+			}
+		}
+
+		return $snapshotData;
+	}
+
+	private function persistButcherCutoutCostSnapshots(array $entradas, array $saidas, string $ended_by_cron, string $ended_by): array
+	{
+		$this->loadModel('DmaCutoutCostSnapshots');
+
+		$snapshotData = $this->buildButcherCutoutSnapshotData($entradas, $saidas, $ended_by_cron, $ended_by);
+		if ($snapshotData === []) {
+			return [true, []];
+		}
+
+		$entities = [];
+		foreach ($snapshotData as $data) {
+			$existing = $this->DmaCutoutCostSnapshots->find()
+				->where([
+					'app_product_id' => $data['app_product_id'],
+					'store_code' => $data['store_code'],
+					'date_accounting' => $data['date_accounting'],
+					'cutout_type' => $data['cutout_type'],
+				])
+				->first();
+
+			if ($existing) {
+				$entities[] = $this->DmaCutoutCostSnapshots->patchEntity($existing, $data);
+				continue;
+			}
+
+			$entities[] = $this->DmaCutoutCostSnapshots->newEntity($data);
+		}
+
+		if ($this->DmaCutoutCostSnapshots->saveMany($entities)) {
+			return [true, []];
+		}
+
+		return [false, $this->extractErrors($entities)];
+	}
+
 	private function resolvePayloadCost(array $data): ?float
 	{
 		if (!empty($data['good']) && is_array($data['good'])) {
@@ -1192,12 +1386,26 @@ class DmaController extends AppController
 		}
 
 		$dmaEntities = $this->Dma->patchEntities(array_merge($entradas, $saidas), array_merge($novas_entradas, $novas_saidas));
-	
-		if ($this->Dma->saveMany($dmaEntities)) {
+		$connection = $this->Dma->getConnection();
+		$errors = [];
+		$success = $connection->transactional(function () use ($dmaEntities, $entradas, $saidas, $ended_by_cron, $ended_by, &$errors) {
+			if (!$this->Dma->saveMany($dmaEntities)) {
+				$errors = $this->extractErrors($dmaEntities);
+				return false;
+			}
+
+			[$snapshotSaved, $snapshotErrors] = $this->persistButcherCutoutCostSnapshots($entradas, $saidas, $ended_by_cron, $ended_by);
+			if (!$snapshotSaved) {
+				$errors = $snapshotErrors;
+				return false;
+			}
+
+			return true;
+		});
+
+		if ($success) {
 			return $this->jsonResponse('ok', 'DMA finalizado com sucesso!');
 		} else {
-
-			$errors = $dmaEntities->getErros();
 			return $this->jsonResponse('erro', 'Ocorreu um erro ao finalizar o DMA.', $errors);
 		}
 	}

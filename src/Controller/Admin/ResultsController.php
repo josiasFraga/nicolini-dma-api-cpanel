@@ -243,6 +243,8 @@ class ResultsController extends AppController
                 $weightedTotals[$storeCode][$cutoutType] = [
                     'total_cost_quantity' => 0.0,
                     'total_quantity' => 0.0,
+                    'source' => 'actual_period_entries',
+                    'snapshot_count' => 0,
                 ];
             }
 
@@ -259,7 +261,83 @@ class ResultsController extends AppController
                     'average_cost' => $totals['total_quantity'] > 0
                         ? (float)($totals['total_cost_quantity'] / $totals['total_quantity'])
                         : 0.0,
+                    'source' => (string)($totals['source'] ?? 'actual_period_entries'),
+                    'snapshot_count' => (int)($totals['snapshot_count'] ?? 0),
                 ];
+            }
+        }
+
+        $snapshotBreakdown = $this->loadCutoutSnapshotBreakdownByStore($selectedStoreCodes, $startDate, $endDate);
+        foreach ($snapshotBreakdown as $storeCode => $cutoutData) {
+            foreach ($cutoutData as $cutoutType => $totals) {
+                $hasActualEntries = isset($breakdown[$storeCode][$cutoutType])
+                    && (float)$breakdown[$storeCode][$cutoutType]['total_quantity'] > 0;
+
+                if ($hasActualEntries) {
+                    continue;
+                }
+
+                $breakdown[$storeCode][$cutoutType] = $totals;
+            }
+        }
+
+        return $breakdown;
+    }
+
+    private function loadCutoutSnapshotBreakdownByStore(array $selectedStoreCodes, string $startDate, string $endDate): array
+    {
+        $this->loadModel('DmaCutoutCostSnapshots');
+
+        $snapshots = $this->DmaCutoutCostSnapshots->find()
+            ->where([
+                'DmaCutoutCostSnapshots.app_product_id' => 1,
+                'DmaCutoutCostSnapshots.store_code IN' => $selectedStoreCodes,
+                'DmaCutoutCostSnapshots.date_accounting >=' => $startDate,
+                'DmaCutoutCostSnapshots.date_accounting <=' => $endDate,
+                'DmaCutoutCostSnapshots.cutout_type IN' => ['Primeira', 'Segunda', 'Osso e Pelanca'],
+            ])
+            ->order([
+                'DmaCutoutCostSnapshots.store_code' => 'ASC',
+                'DmaCutoutCostSnapshots.cutout_type' => 'ASC',
+                'DmaCutoutCostSnapshots.date_accounting' => 'ASC',
+                'DmaCutoutCostSnapshots.id' => 'ASC',
+            ])
+            ->enableHydration(false)
+            ->toArray();
+
+        $breakdown = [];
+        foreach ($snapshots as $snapshot) {
+            $storeCode = (string)$snapshot['store_code'];
+            $cutoutType = (string)$snapshot['cutout_type'];
+
+            if (!isset($breakdown[$storeCode][$cutoutType])) {
+                $breakdown[$storeCode][$cutoutType] = [
+                    'total_cost_quantity' => 0.0,
+                    'total_quantity' => 0.0,
+                    'average_cost' => 0.0,
+                    'snapshot_cost_sum' => 0.0,
+                    'snapshot_count' => 0,
+                    'source' => (string)$snapshot['source'],
+                ];
+            }
+
+            $breakdown[$storeCode][$cutoutType]['snapshot_cost_sum'] += (float)$snapshot['cost'];
+            $breakdown[$storeCode][$cutoutType]['snapshot_count']++;
+            $breakdown[$storeCode][$cutoutType]['source'] = (string)$snapshot['source'];
+        }
+
+        foreach ($breakdown as $storeCode => $cutoutData) {
+            foreach ($cutoutData as $cutoutType => $totals) {
+                $snapshotCount = (int)$totals['snapshot_count'];
+                $breakdown[$storeCode][$cutoutType]['average_cost'] = $snapshotCount > 0
+                    ? (float)($totals['snapshot_cost_sum'] / $snapshotCount)
+                    : 0.0;
+
+                if ($snapshotCount > 1) {
+                    $breakdown[$storeCode][$cutoutType]['source'] = 'snapshot_period_average';
+                }
+
+                unset($breakdown[$storeCode][$cutoutType]['snapshot_cost_sum']);
             }
         }
 
@@ -283,7 +361,7 @@ class ResultsController extends AppController
     private function getDebugImpactDescription(string $type, ?string $cutoutType): string
     {
         if ($type === 'Saida') {
-            return 'Atualiza SAIDAS e gera previsto de Primeira, Segunda e Osso e Pelanca usando ExpectedYield e custo medio do periodo.';
+            return 'Atualiza SAIDAS e gera previsto de Primeira, Segunda e Osso e Pelanca usando ExpectedYield e custo medio do periodo, com fallback para snapshots de fechamento quando faltar entrada real do corte.';
         }
 
         if ($cutoutType === 'Primeira') {
@@ -892,7 +970,7 @@ class ResultsController extends AppController
                     'O relatorio separa o resultado por Primeira, Segunda e Osso e Pelanca para facilitar a leitura operacional de cada parte do retorno.',
                 ],
                 'definitions' => [
-                    ['label' => 'R$ Custo Medio', 'text' => 'Mostra o custo medio do corte dentro do periodo filtrado.'],
+                    ['label' => 'R$ Custo Medio', 'text' => 'Mostra o custo medio do corte dentro do periodo filtrado. Se nao houver entrada real do corte, o sistema usa snapshots de fechamento do periodo como fallback.'],
                     ['label' => 'R$ Previstos do corte', 'text' => 'Mostra quanto o sistema esperava obter naquele corte.'],
                     ['label' => 'R$ Realizados do corte', 'text' => 'Mostra quanto realmente entrou naquele corte.'],
                     ['label' => 'R$ Diferenca do corte', 'text' => 'Mostra a diferenca entre o realizado e o previsto do corte.'],
@@ -992,7 +1070,7 @@ class ResultsController extends AppController
             [
                 'title' => 'Regra do Custo Medio por Corte',
                 'paragraphs' => [
-                    'Antes do processamento principal, o relatorio calcula um custo medio ponderado por loja e por tipo de corte usando apenas entradas do periodo.',
+                    'Antes do processamento principal, o relatorio calcula um custo medio ponderado por loja e por tipo de corte usando as entradas reais do periodo. Quando um corte nao possui entrada real no intervalo, o sistema consulta snapshots de custo gerados no fechamento do DMA para evitar previsto zerado artificialmente.',
                 ],
                 'formulas' => [
                     'custo_medio_corte = soma(custo_efetivo * quantidade) / soma(quantidade)',
@@ -1001,6 +1079,7 @@ class ResultsController extends AppController
                     'Primeira usa apenas entradas com cutout_type = Primeira.',
                     'Segunda usa apenas entradas com cutout_type = Segunda.',
                     'Osso e Pelanca usa apenas entradas com cutout_type = Osso e Pelanca.',
+                    'Se soma(quantidade) do corte for zero no periodo, o custo medio passa a vir da media simples dos snapshots de fechamento do proprio periodo para aquele corte.',
                 ],
             ],
             [
@@ -1015,7 +1094,7 @@ class ResultsController extends AppController
             [
                 'title' => 'Calculo dos Previsto por Corte',
                 'paragraphs' => [
-                    'Para cada registro de Saida, o sistema consulta ExpectedYield pela combinacao de loja e mercadoria. Com isso, transforma a quantidade de saida em quantidade esperada por tipo de corte e converte em valor usando o custo medio do periodo.',
+                    'Para cada registro de Saida, o sistema consulta ExpectedYield pela combinacao de loja e mercadoria. Com isso, transforma a quantidade de saida em quantidade esperada por tipo de corte e converte em valor usando o custo medio do periodo, ou o snapshot de fechamento quando faltar entrada real do corte.',
                 ],
                 'formulas' => [
                     'qtd_esperada_primeira = quantidade_saida * (prime / 100)',
