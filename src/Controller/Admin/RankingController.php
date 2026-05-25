@@ -13,6 +13,38 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 class RankingController extends AppController
 {
 
+    private function attachProductDescriptions(iterable $rows): void
+    {
+        $goodCodes = [];
+        foreach ($rows as $row) {
+            $goodCode = (string)($row->good_code ?? '');
+            if ($goodCode !== '') {
+                $goodCodes[] = $goodCode;
+            }
+        }
+
+        if ($goodCodes === []) {
+            return;
+        }
+
+        $this->loadModel('Mercadorias');
+        $descriptions = $this->Mercadorias->find()
+            ->select([
+                'cd_codigoint',
+                'tx_descricao' => 'MIN(Mercadorias.tx_descricao)',
+            ])
+            ->where(['Mercadorias.cd_codigoint IN' => array_values(array_unique($goodCodes))])
+            ->group(['Mercadorias.cd_codigoint'])
+            ->enableHydration(false)
+            ->all()
+            ->combine('cd_codigoint', 'tx_descricao')
+            ->toArray();
+
+        foreach ($rows as $row) {
+            $row->set('product_description', $descriptions[(string)($row->good_code ?? '')] ?? '');
+        }
+    }
+
     public function initialize(): void
     {
         parent::initialize();
@@ -41,17 +73,7 @@ class RankingController extends AppController
         $orderField = $this->request->getQuery('sort_field', 'good_code'); // Ordenar por good_code como padrão
         $orderDirection = $this->request->getQuery('sort_order', 'asc'); // Direção padrão de ordenação
     
-        $query = $this->Dma->find()->contain([
-            'Mercadorias' => function ($q) {
-                return $q->select([
-                    'Mercadorias.cd_codigoint',
-                    'Mercadorias.tx_descricao',
-                    'Mercadorias.custotab',
-                    'Mercadorias.customed',
-                    'Mercadorias.opcusto'
-                ]);
-            }
-        ]);
+        $query = $this->Dma->find();
     
         if (empty($filters['month_year_accounting']) && empty($filters['date_start_accounting']) && empty($filters['date_end_accounting']) && empty($filters['date_start_movement']) && empty($filters['date_end_movement']) && empty($filters['store'])) {
             // Forçar o mês atual
@@ -136,6 +158,7 @@ class RankingController extends AppController
         ];
     
         $dma = $this->paginate($query);
+        $this->attachProductDescriptions($dma);
     
         // Determinar se há filtros ativos
         $filtersActive = !empty(array_filter($filters));
@@ -180,17 +203,7 @@ class RankingController extends AppController
         $sheet->setCellValue('D' . $dataStartRow, 'Custo');
         $sheet->setCellValue('E' . $dataStartRow, 'Total');
 
-        $query = $this->Dma->find()->contain([
-            'Mercadorias' => function ($q) {
-                return $q->select([
-                    'Mercadorias.cd_codigoint',
-                    'Mercadorias.tx_descricao',
-                    'Mercadorias.custotab',
-                    'Mercadorias.customed',
-                    'Mercadorias.opcusto'
-                ]);
-            }
-        ]);
+        $query = $this->Dma->find();
     
         if (empty($filters['month_year_accounting']) && empty($filters['date_start_accounting']) && empty($filters['date_end_accounting']) && empty($filters['date_start_movement']) && empty($filters['date_end_movement']) && empty($filters['store'])) {
             // Forçar o mês atual
@@ -267,12 +280,13 @@ class RankingController extends AppController
         // Obter todos os registros (sem paginação, geralmente) 
         // ou use pagination se quiser.
         $results = $query->all();
+        $this->attachProductDescriptions($results);
     
         // Preenchendo o Excel
         $row = $dataStartRow + 1;
         foreach ($results as $dma) {
             $sheet->setCellValue('A' . $row, $dma->good_code);
-            $sheet->setCellValue('B' . $row, $dma->mercadoria->tx_descricao ?? '');
+            $sheet->setCellValue('B' . $row, $dma->product_description ?? '');
             $sheet->setCellValue('C' . $row, $dma->quantity);
             // Custo calculado ou nativo
             $sheet->setCellValue('D' . $row, number_format(floatval($dma->cost), 2, ',', '.'));

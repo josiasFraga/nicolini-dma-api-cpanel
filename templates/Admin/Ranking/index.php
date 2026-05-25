@@ -50,7 +50,7 @@ $this->assign('title', 'DMA');
 				<?php foreach ($dma as $dma): ?>
 					<tr>
 					<td class="text-center"><?= h($dma->good_code) ?></td>
-					<td><?= h($dma->mercadoria->tx_descricao) ?></td>
+					<td><?= h($dma->product_description ?? '') ?></td>
 					<td class="text-center"><?= $this->Number->format($dma->quantity) ?></td>
 					<td class="text-center">R$ <?= number_format($dma->cost, 2, ',', '.') ?></td>
 					<td class="text-center">R$ <?= number_format($dma->total, 2, ',', '.') ?></td>
