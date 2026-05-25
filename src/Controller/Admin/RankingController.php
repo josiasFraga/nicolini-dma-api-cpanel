@@ -67,31 +67,12 @@ class RankingController extends AppController
             $query->where(['Dma.app_product_id' => $filters['product']]);
         }
     
-        // Mesmas expressões CASE
-        $costCaseSql = "
-            CASE
-                WHEN Mercadorias.opcusto = 'T' THEN Mercadorias.custotab
-                WHEN Mercadorias.opcusto <> 'T' THEN Mercadorias.customed
-                ELSE 0
-            END
-        ";
-        $totalCaseSql = "
-            CASE
-                WHEN Mercadorias.opcusto = 'T' THEN (Mercadorias.custotab * Dma.quantity)
-                WHEN Mercadorias.opcusto <> 'T' THEN (Mercadorias.customed * Dma.quantity)
-                ELSE 0
-            END
-        ";
-    
-        $costCaseExpr = $query->newExpr($costCaseSql);
-        $totalCaseExpr = $query->newExpr($totalCaseSql);
-
         // SELECT com agregação
         $query->select([
             'good_code' => 'Dma.good_code',
             'quantity' => $query->func()->sum('Dma.quantity'),
-            'cost' => $query->func()->sum($costCaseExpr),
-            'total' => $query->func()->sum($totalCaseExpr),
+            'cost' => $query->func()->sum('Dma.cost'),
+            'total' => $query->newExpr('SUM(Dma.cost * Dma.quantity)'),
         ])
         ->group(['Dma.good_code']); // Agrupar por good_code
     
@@ -221,31 +202,12 @@ class RankingController extends AppController
             ]);
         }
 
-        // Mesmas expressões CASE
-        $costCaseSql = "
-            CASE
-                WHEN Mercadorias.opcusto = 'T' THEN Mercadorias.custotab
-                WHEN Mercadorias.opcusto <> 'T' THEN Mercadorias.customed
-                ELSE 0
-            END
-        ";
-        $totalCaseSql = "
-            CASE
-                WHEN Mercadorias.opcusto = 'T' THEN (Mercadorias.custotab * Dma.quantity)
-                WHEN Mercadorias.opcusto <> 'T' THEN (Mercadorias.customed * Dma.quantity)
-                ELSE 0
-            END
-        ";
-
-        $costCaseExpr = $query->newExpr($costCaseSql);
-        $totalCaseExpr = $query->newExpr($totalCaseSql);
-
         // SELECT com agregação
         $query->select([
             'good_code' => 'Dma.good_code',
             'quantity' => $query->func()->sum('Dma.quantity'),
-            'cost' => $query->func()->sum($costCaseExpr),
-            'total' => $query->func()->sum($totalCaseExpr),
+            'cost' => $query->func()->sum('Dma.cost'),
+            'total' => $query->newExpr('SUM(Dma.cost * Dma.quantity)'),
         ])
         ->group(['Dma.good_code']); // Agrupar por good_code
 
