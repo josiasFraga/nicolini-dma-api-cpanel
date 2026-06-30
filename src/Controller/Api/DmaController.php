@@ -49,6 +49,20 @@ class DmaController extends AppController
 
 		$store_code = $dados['store_code'];
 		$app_product_id = empty($dados['app_product_id']) ? 1 : $dados['app_product_id'];
+		$requestedDateAccounting = !empty($dados['date_accounting']) ? $dados['date_accounting'] : null;
+
+		if ($requestedDateAccounting !== null) {
+			$parsedDate = FrozenDate::createFromFormat('Y-m-d', $requestedDateAccounting);
+			if (!$parsedDate || $parsedDate->format('Y-m-d') !== $requestedDateAccounting) {
+				return $this->jsonResponse('erro', 'Data contábil inválida. Use o formato YYYY-MM-DD.');
+			}
+		}
+
+		$targetDateAccounting = $this->resolveTargetDateAccountingForFinish($store_code, (int)$app_product_id, $requestedDateAccounting);
+
+		if (!$targetDateAccounting) {
+			return $this->jsonResponse('erro', 'Nenhum lançamento pendente para finalizar na loja informada.');
+		}
 
 		$entradas = [];
 		$saidas = [];
@@ -63,7 +77,8 @@ class DmaController extends AppController
 				'Dma.ended' => 'N',
 				//'Dma.user' => $userId,
 				'Dma.type' => 'Entrada',
-				'Dma.store_code' => $store_code
+				'Dma.store_code' => $store_code,
+				'Dma.date_accounting' => $targetDateAccounting
 			])
 			->toArray();
 	
@@ -72,7 +87,8 @@ class DmaController extends AppController
 				'Dma.ended' => 'N',
 				//'Dma.user' => $userId,
 				'Dma.type' => 'Saida',
-				'Dma.store_code' => $store_code
+				'Dma.store_code' => $store_code,
+				'Dma.date_accounting' => $targetDateAccounting
 			])
 			->toArray();
 	 
@@ -94,6 +110,10 @@ class DmaController extends AppController
 	
 			$total_kg_entradas = array_sum($quantities_in);
 			$total_kg_saidas = array_sum($quantities_out);
+
+			if ($total_kg_entradas <= 0) {
+				return $this->jsonResponse('erro', 'Não é possível validar a diferença percentual com total de entradas igual a zero.');
+			}
 	
 			$diferenca_em_percent = $this->calcularDiferencaPercentual($total_kg_entradas, $total_kg_saidas);
 	
@@ -110,7 +130,8 @@ class DmaController extends AppController
 				'Dma.ended' => 'N',
 				//'Dma.user' => $userId,
 				'Dma.type' => 'Producao',
-				'Dma.store_code' => $store_code
+				'Dma.store_code' => $store_code,
+				'Dma.date_accounting' => $targetDateAccounting
 			])
 			->toArray();
 	
@@ -119,7 +140,8 @@ class DmaController extends AppController
 				'Dma.ended' => 'N',
 				//'Dma.user' => $userId,
 				'Dma.type' => 'Quebra',
-				'Dma.store_code' => $store_code
+				'Dma.store_code' => $store_code,
+				'Dma.date_accounting' => $targetDateAccounting
 			])
 			->toArray();
 	 
@@ -168,6 +190,34 @@ class DmaController extends AppController
 			'quebras' => $quebras
 		], 'N', $dados["user"], $app_product_id);
 		
+	}
+
+	private function resolveTargetDateAccountingForFinish(string $storeCode, int $appProductId, ?string $requestedDateAccounting = null): ?string
+	{
+		$conditions = [
+			'Dma.store_code' => $storeCode,
+			'Dma.app_product_id' => $appProductId,
+			'Dma.ended' => 'N'
+		];
+
+		if (!empty($requestedDateAccounting)) {
+			$date = FrozenDate::createFromFormat('Y-m-d', $requestedDateAccounting);
+			if ($date && $date->format('Y-m-d') === $requestedDateAccounting) {
+				$conditions['Dma.date_accounting'] = $requestedDateAccounting;
+			}
+		}
+
+		$firstPending = $this->Dma->find()
+			->select(['Dma.date_accounting'])
+			->where($conditions)
+			->order(['Dma.date_accounting' => 'ASC'])
+			->first();
+
+		if (!$firstPending || empty($firstPending->date_accounting)) {
+			return null;
+		}
+
+		return $firstPending->date_accounting->format('Y-m-d');
 	}
 
 	public function nextDate()
@@ -1260,64 +1310,73 @@ class DmaController extends AppController
 		if ( count($dmas_nao_finalizados) > 0 ) {
 
 			foreach ($dmas_nao_finalizados as $dma ) {
+				$pendingDates = $this->listPendingDateAccountingByStoreProduct((string)$dma['store_code'], (int)$dma['app_product_id']);
 
-				if ( $dma['app_product_id'] == 1 ) {
+				foreach ($pendingDates as $pendingDate) {
 
-					$entradas = $this->Dma->find('all')
-					->where([
-						'Dma.ended' => 'N',
-						'Dma.type' => 'Entrada',
-						'Dma.store_code' => $dma['store_code'],
-						'Dma.date_accounting <=' => date('Y-m-d')
-					])
-					->toArray();
+					if ( $dma['app_product_id'] == 1 ) {
+
+						$entradas = $this->Dma->find('all')
+						->where([
+							'Dma.ended' => 'N',
+							'Dma.type' => 'Entrada',
+							'Dma.store_code' => $dma['store_code'],
+							'Dma.date_accounting' => $pendingDate
+						])
+						->toArray();
 	
-					$saidas = $this->Dma->find('all')
-					->where([
-						'Dma.ended' => 'N',
-						'Dma.type' => 'Saida',
-						'Dma.store_code' => $dma['store_code'],
-						'Dma.date_accounting <=' => date('Y-m-d')
-					])
-					->toArray();
+						$saidas = $this->Dma->find('all')
+						->where([
+							'Dma.ended' => 'N',
+							'Dma.type' => 'Saida',
+							'Dma.store_code' => $dma['store_code'],
+							'Dma.date_accounting' => $pendingDate
+						])
+						->toArray();
 			
-					if ( count($saidas) == 0 ) {
-						continue;
-					}
-				
-					if ( count($entradas) == 0 ) {
-						continue;
-					}
+						if ( count($saidas) == 0 ) {
+							continue;
+						}
+					
+						if ( count($entradas) == 0 ) {
+							continue;
+						}
 	
-					$this->finishDma([
-						'entradas' => $entradas, 
-						'saidas' => $saidas
-					], 'Y', 'Sistema', $dma['app_product_id']);
+						$this->finishDma([
+							'entradas' => $entradas, 
+							'saidas' => $saidas
+						], 'Y', 'Sistema', $dma['app_product_id']);
 
-				} else if ( $dma['app_product_id'] == 2 ) {
+					} else if ( $dma['app_product_id'] == 2 ) {
 
-					$producoes = $this->Dma->find('all')
-					->where([
-						'Dma.ended' => 'N',
-						'Dma.type' => 'Producao',
-						'Dma.store_code' => $dma['store_code'],
-						'Dma.date_accounting <=' => date('Y-m-d')
-					])
-					->toArray();
+						$producoes = $this->Dma->find('all')
+						->where([
+							'Dma.ended' => 'N',
+							'Dma.type' => 'Producao',
+							'Dma.store_code' => $dma['store_code'],
+							'Dma.date_accounting' => $pendingDate
+						])
+						->toArray();
 
-					$quebras = $this->Dma->find('all')
-					->where([
-						'Dma.ended' => 'N',
-						'Dma.type' => 'Quebra',
-						'Dma.store_code' => $dma['store_code'],
-						'Dma.date_accounting <=' => date('Y-m-d')
-					])
-					->toArray();
+						$quebras = $this->Dma->find('all')
+						->where([
+							'Dma.ended' => 'N',
+							'Dma.type' => 'Quebra',
+							'Dma.store_code' => $dma['store_code'],
+							'Dma.date_accounting' => $pendingDate
+						])
+						->toArray();
 
-					$this->finishDma([
-						'producoes' => $producoes, 
-						'quebras' => $quebras
-					], 'Y', 'Sistema', $dma['app_product_id']);
+						if (count($producoes) === 0 && count($quebras) === 0) {
+							continue;
+						}
+
+						$this->finishDma([
+							'producoes' => $producoes, 
+							'quebras' => $quebras
+						], 'Y', 'Sistema', $dma['app_product_id']);
+
+					}
 
 				}
 
@@ -1328,6 +1387,30 @@ class DmaController extends AppController
 
 		return $this->jsonResponse('ok', 'DMAs finalizados com sucesso!');
 
+	}
+
+	private function listPendingDateAccountingByStoreProduct(string $storeCode, int $appProductId): array
+	{
+		$rows = $this->Dma->find()
+			->select(['Dma.date_accounting'])
+			->where([
+				'Dma.ended' => 'N',
+				'Dma.store_code' => $storeCode,
+				'Dma.app_product_id' => $appProductId,
+				'Dma.date_accounting <=' => date('Y-m-d')
+			])
+			->group(['Dma.date_accounting'])
+			->order(['Dma.date_accounting' => 'ASC'])
+			->toArray();
+
+		$dates = [];
+		foreach ($rows as $row) {
+			if (!empty($row->date_accounting)) {
+				$dates[] = $row->date_accounting->format('Y-m-d');
+			}
+		}
+
+		return $dates;
 	}
 
 	private function finishDma ($dados, $ended_by_cron, $ended_by, $app_product_id = 1) {
@@ -1459,9 +1542,6 @@ class DmaController extends AppController
 	}
 	
 	private function calcularDiferencaPercentual($valorOriginal, $novoValor) {
-		if ($valorOriginal == 0) {
-			return "Erro: O valor original não pode ser zero.";
-		}
 		
 		$diferenca = $novoValor - $valorOriginal;
 		$percentual = ($diferenca / $valorOriginal) * 100;
